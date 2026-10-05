@@ -1,6 +1,6 @@
 # Sprint 0 readiness and evidence plan
 
-Status as of 2026-10-05: **Access/MFA, contact delivery and trilingual CV compilation have live evidence.** The newly supplied CV-reference layout has compiled and been visually inspected. Measured live publication remains pending. The owner approved retaining brief 02's restrictions and the isolated dummy Turnstile exception.
+Status as of 2026-10-05: **All four core paths have live evidence, including one measured publication.** The owner chose to retain the static architecture and repeat the publish measurement after the GitHub runner outage recovers before accepting latency. The reference-derived CV layout is compiled and visually inspected. Brief 02's restrictions and the isolated dummy Turnstile exception remain in force.
 
 ## Evidence recorded so far
 
@@ -9,6 +9,7 @@ Status as of 2026-10-05: **Access/MFA, contact delivery and trilingual CV compil
 - Separate remote content and inbox databases were created. Their initial migrations completed successfully (27 and 13 commands respectively). Account/database IDs are retained only in ignored local deployment configuration.
 - Admin Worker: unauthenticated `/api/session` returned **302** to Access. After the owner supplied the AUD, the origin was redeployed with independent JWT verification. The owner confirmed a fresh private-window Independent MFA prompt followed by `authenticated: true`. Exact URL/version evidence remains in ignored `artifacts/remote-evidence.json`.
 - Contact Worker: only inbox D1 and fixed-recipient Email bindings. A synthetic API submission returned 202; an explicit status-only D1 query showed one message with `notification_status: sent`. The owner confirmed Gmail Inbox placement and correct Reply-To. Addresses and correlation evidence stay in ignored files. No real bot-resistance or browser-form proof is claimed from this API trace.
+- [Measured publish run](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/37372533029) succeeded with remote content revision 1. D1 save/capture audit timestamps match the downloaded capture; all three live pages contain its revision and translated content, with no client script or session cookie. All three public PDFs return 200 and have been rendered and inspected. Capture-to-live was 1645.8–1646.0 seconds, including a 1277-second runner queue. [Detailed evidence and owner decision](10-live-publish-evidence.md) distinguish the outage delay from the roughly 234 seconds of job execution to live verification.
 - [Reference-layout TeX Live run](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/37320683489) succeeded. Cold image pull: 136.16 seconds. Per-pass EN 9.84/9.56s, FR 9.60/9.52s, AR 9.60/9.58s. Run creation to completion: about 234 seconds. The artifact digest was verified before rendering all three one-page PDFs. Poppins and Amiri were embedded with Unicode mappings. French accents and URL punctuation, Arabic joining/RTL, mixed Latin runs, mirrored entries and absence of clipping were visually checked. A literal three-hyphen date separator was subsequently replaced with an em dash; the reference's italic institution and light date styles were also restored. The PR's latest compile check covers these refinements.
 
 ## Explicit Sprint 0 exception approved by the owner
@@ -58,7 +59,7 @@ As checked against [Node's release table](https://nodejs.org/en/about/previous-r
 - Design decision resolved: the owner explicitly approved keeping brief 02's restrictions.
 - The owner supplied the workers.dev suffix, Access team URL, owner identity, notification sender and verified Gmail destination. Wrangler deployment and the Access redirect are independently observed; the owner confirmed successful Independent MFA and Gmail Inbox delivery.
 - The Access audience/issuer and database IDs are configured in ignored deployment files. The updated CV-label migration is applied to local and remote content D1.
-- Actual free-plan configuration, repository Actions settings, narrowly scoped deployment credentials and final deployment names.
+- The owner configured the scoped GitHub Actions secrets and merged PR #1; the publish workflow used them successfully. Final production naming and later account controls remain phase-specific tasks. The latency decision is to repeat after recovery, not to switch to SSR or begin the next build phase yet.
 
 No account names, account IDs, MFA enrollment, DNS changes or billing settings have been inferred from the GitHub handle. Existing setup may satisfy these prerequisites; discover its status before duplicating resources.
 
@@ -117,7 +118,7 @@ Verify static HTML has the content in the first response, sets no public session
 
 The brief's approximate two minutes is an expectation, not a measured result or a new acceptance threshold. Present actual numbers to the owner. Do not switch to SSR automatically.
 
-Current result: **NOT RUN**. A reviewed publish workflow and authenticated diagnostic capture are implemented. CI secrets and default-branch workflow registration remain owner setup; see [the exact handoff](09-publish-spike-handoff.md). No live publish duration is claimed.
+Current result: **ONE LIVE PUBLISH VERIFIED; LATENCY REPEAT PENDING**. The first run measured about 27m26s capture-to-live and 29m58s save-to-live during GitHub's runner outage. The owner chose to keep the static design and repeat after recovery. See [the evidence](10-live-publish-evidence.md) and [repeat instructions](09-publish-spike-handoff.md). Live overlap/failure exercises and a normal-service sample remain outstanding; local ordering/privacy checks do not substitute for those exercises.
 
 ## Proof C — Real trilingual TeX Live compilation
 
@@ -143,11 +144,11 @@ Current result: **DELIVERY TRACE PASSED** under the approved dummy-key exception
 
 ## Gate ledger
 
-| Gate                                                    | Live evidence                                         | Result                          |
-| ------------------------------------------------------- | ----------------------------------------------------- | ------------------------------- |
-| Access + Independent MFA on bare address                | 302 plus owner-confirmed MFA and authenticated origin | Core proof passed               |
-| Save → publish → verify live, measured                  | Workflow prepared; owner CI setup pending             | Not run                         |
-| EN/FR/AR TeX Live PDFs, measured and visually inspected | Reference layout compiled; rendered pages inspected   | Passed for synthetic CV         |
-| Contact → isolated inbox → Gmail, not spam              | Live API/D1/send plus Gmail confirmation              | Passed with dummy-key exception |
+| Gate                                                    | Live evidence                                         | Result                              |
+| ------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------- |
+| Access + Independent MFA on bare address                | 302 plus owner-confirmed MFA and authenticated origin | Core proof passed                   |
+| Save → publish → verify live, measured                  | Revision 1 verified on all routes and public PDFs     | Passed once; latency repeat pending |
+| EN/FR/AR TeX Live PDFs, measured and visually inspected | Reference layout compiled; rendered pages inspected   | Passed for synthetic CV             |
+| Contact → isolated inbox → Gmail, not spam              | Live API/D1/send plus Gmail confirmation              | Passed with dummy-key exception     |
 
 Proceed to foundation/build phases only after these four results are supported by actual evidence and any unacceptable measured latency is resolved with the owner. Until then, report the missing dependency directly rather than substituting mocks or declaring the spike complete.
