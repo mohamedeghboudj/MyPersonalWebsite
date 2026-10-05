@@ -21,8 +21,9 @@ export const adminEnvSchema = z.object({
 export const dummyTurnstile = {
   sitekey: '1x00000000000000000000AA',
   secret: '1x0000000000000000000000000000000AA',
-  hostname: 'localhost',
-  action: 'test',
+  // Observed from the actual Siteverify endpoint on 2026-10-05. The docs'
+  // example currently differs; real widgets still require hostname + action.
+  hostname: 'example.com',
 } as const;
 export const contactEnvSchema = z
   .object({

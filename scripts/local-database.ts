@@ -1,5 +1,5 @@
 import { convertV4MiniflareOptions, Miniflare } from 'miniflare';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 
 export async function localDatabase(persist = false) {
   const runtime = new Miniflare(
@@ -30,9 +30,12 @@ export async function migrateTestDatabase(
   content: D1Database,
   inbox: D1Database,
 ) {
-  await content.exec(
-    await readFile('database/migrations/content/0001_spike.sql', 'utf8'),
-  );
+  for (const name of (await readdir('database/migrations/content'))
+    .filter((name) => name.endsWith('.sql'))
+    .sort())
+    await content.exec(
+      await readFile(`database/migrations/content/${name}`, 'utf8'),
+    );
   await inbox.exec(
     await readFile('database/migrations/inbox/0001_spike.sql', 'utf8'),
   );

@@ -68,6 +68,9 @@ export async function createSnapshot(content: D1Database) {
       .select({
         locale: variantTranslations.locale,
         summary: variantTranslations.summary,
+        profileHeading: variantTranslations.profileHeading,
+        educationHeading: variantTranslations.educationHeading,
+        presentLabel: variantTranslations.presentLabel,
       })
       .from(variantTranslations)
       .innerJoin(variants, eq(variants.id, variantTranslations.variantId))

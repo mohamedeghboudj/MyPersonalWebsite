@@ -1,0 +1,47 @@
+name: Sprint 0 measured publish
+on:
+  workflow_dispatch:
+    inputs:
+      capture:
+        description: JSON downloaded from the authenticated publish-capture endpoint (public synthetic content only)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: sprint-0-public-deployment
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.actor == github.repository_owner && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --global corepack@0.36.0
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm audit --audit-level=moderate
+      - run: node scripts/accept-publish.ts
+      - run: pnpm cv:prepare
+      - run: pnpm cv:compile
+      - run: node scripts/stage-public-cv.ts
+      - run: pnpm build:site
+      - run: pnpm check:static
+      - run: node scripts/deploy-spike.ts
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_SPIKE_DEPLOY_TOKEN }}
+          PUBLIC_URL: ${{ secrets.SPIKE_PUBLIC_URL }}
+      - run: node scripts/observe-publish.ts
+        env:
+          PUBLIC_URL: ${{ secrets.SPIKE_PUBLIC_URL }}
+      # No capture, logs, private configuration or CV variants are uploaded.
+      # Successful public pages/PDFs are the deployed artifacts of this job.

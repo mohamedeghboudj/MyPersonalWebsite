@@ -80,6 +80,9 @@ export const variantTranslations = sqliteTable(
       .references(() => variants.id, { onDelete: 'cascade' }),
     locale: text('locale', { enum: ['en', 'fr', 'ar'] }).notNull(),
     summary: text('summary').notNull(),
+    profileHeading: text('profile_heading').notNull(),
+    educationHeading: text('education_heading').notNull(),
+    presentLabel: text('present_label').notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.variantId, table.locale] }),

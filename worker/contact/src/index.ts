@@ -37,6 +37,9 @@ const verificationSchema = z.object({
   success: z.boolean(),
   hostname: z.string().optional(),
   action: z.string().optional(),
+  metadata: z
+    .object({ result_with_testing_key: z.boolean().optional() })
+    .optional(),
 });
 type VerifyChallenge = (
   secret: string,
@@ -147,14 +150,15 @@ export function createContact(
       } catch {
         return c.json({ error: 'Verification unavailable' }, 503);
       }
-      if (
-        !check.success ||
-        check.hostname !== c.env.TURNSTILE_HOSTNAME ||
-        check.action !==
-          (c.env.TURNSTILE_MODE === 'spike'
-            ? dummyTurnstile.action
-            : contactPolicy.turnstileAction)
-      )
+      const expectedChallenge =
+        c.env.TURNSTILE_MODE === 'spike'
+          ? check.metadata?.result_with_testing_key === true &&
+            check.hostname === dummyTurnstile.hostname &&
+            check.action === undefined
+          : check.metadata?.result_with_testing_key !== true &&
+            check.hostname === c.env.TURNSTILE_HOSTNAME &&
+            check.action === contactPolicy.turnstileAction;
+      if (!check.success || !expectedChallenge)
         return c.json({ error: 'Verification failed' }, 400);
       await db
         .insert(messages)

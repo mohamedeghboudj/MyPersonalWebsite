@@ -1,19 +1,19 @@
 # Sprint 0 readiness and evidence plan
 
-Status as of 2026-10-05: Sprint 0 implementation and partial live checks are underway. **None of the four gates is complete.** The owner approved retaining brief 02's restrictions, authorized Wrangler/local development and D1 creation, supplied the existing account configuration, and explicitly authorized deploying the admin placeholder before its Access AUD exists.
+Status as of 2026-10-05: **Access/MFA and contact delivery have live evidence.** Full TeX Live compilation succeeded; the newly supplied CV-reference layout is being revalidated. Measured live publication remains pending. The owner approved retaining brief 02's restrictions and the isolated dummy Turnstile exception.
 
 ## Evidence recorded so far
 
-- Pinned Node 24.21.0 / pnpm 10.34.6; typecheck, lint, formatting and **37 local tests pass**. Dependency audit reports no known vulnerabilities.
+- Pinned Node 24.21.0 / pnpm 10.34.6; typecheck, lint, formatting and **39 local tests pass**. Dependency audit reports no known vulnerabilities. The initial GitHub CI run also passed.
 - Wrangler's local D1 migrations pass. Saving synthetic content produces revision 1, the allowlisted snapshot, all three static HTML routes, and EN/FR/AR LaTeX sources. Static output validation passes. Local timings are in ignored `artifacts/local-evidence.json` and are **not live publish latency**.
 - Separate remote content and inbox databases were created. Their initial migrations completed successfully (27 and 13 commands respectively). Account/database IDs are retained only in ignored local deployment configuration.
-- Admin Worker deployed successfully. An unauthenticated `/api/session` request returned **302** to the configured Access team's login. This proves edge interception, not the owner policy, the Independent MFA ceremony, or successful origin JWT validation. AUD remains pending; the origin rejects incomplete configuration. Exact URL/version evidence is kept in ignored `artifacts/remote-evidence.json`.
-- Contact Worker deployed with only inbox D1 and fixed-recipient Email bindings. Addresses and account identifiers remain in ignored deployment configuration. The rate-limit salt was generated locally and stored with `wrangler secret bulk`; its temporary file was removed without printing the value. No test message has been sent yet.
-- Full TeX Live GitHub Actions workflow is prepared; real compilation and Arabic visual inspection remain pending.
+- Admin Worker: unauthenticated `/api/session` returned **302** to Access. After the owner supplied the AUD, the origin was redeployed with independent JWT verification. The owner confirmed a fresh private-window Independent MFA prompt followed by `authenticated: true`. Exact URL/version evidence remains in ignored `artifacts/remote-evidence.json`.
+- Contact Worker: only inbox D1 and fixed-recipient Email bindings. A synthetic API submission returned 202; an explicit status-only D1 query showed one message with `notification_status: sent`. The owner confirmed Gmail Inbox placement and correct Reply-To. Addresses and correlation evidence stay in ignored files. No real bot-resistance or browser-form proof is claimed from this API trace.
+- [Full TeX Live Actions run](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/37268000833) succeeded. Cold image pull: 137.47 seconds. Per-pass EN 9.53/9.40s, FR 9.40/9.42s, AR 9.49/9.38s. Run creation to completion: about 232 seconds. All three one-page PDFs rendered; Arabic Amiri and Latin fonts were embedded. These numbers validate the initial minimal template. The Poppins/reference-derived template needs a fresh run.
 
 ## Explicit Sprint 0 exception approved by the owner
 
-On 2026-10-05 the owner instructed use of Cloudflare's permanent dummy Turnstile pair for Sprint 0 and deferred the real widget until launch. This explicitly changes the real-challenge part of proof D below. Server-side Siteverify still runs; hostname/action are checked against the documented dummy contract (`localhost` / `test`). Production mode rejects dummy keys, and spike mode restricts the permitted page origin to localhost or the dedicated `mohamedeghboudj-site-spike.*.workers.dev` host. [Cloudflare's test-key documentation](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) describes the dummy response.
+On 2026-10-05 the owner instructed use of Cloudflare's permanent dummy Turnstile pair for Sprint 0 and deferred the real widget until launch. This explicitly changes the real-challenge part of proof D below. Server-side Siteverify still runs. A direct live check returned hostname `example.com`, no action and `metadata.result_with_testing_key: true`; this differs from [Cloudflare's documentation example](https://developers.cloudflare.com/turnstile/troubleshooting/testing/). Spike mode checks the observed canned response; production retains real hostname/action checks and rejects test metadata and dummy keys. Spike page origins are restricted to localhost or the dedicated `mohamedeghboudj-site-spike.*.workers.dev` host.
 
 Dummy keys do not demonstrate bot resistance, real token expiry or single-use enforcement. A real widget and those checks remain launch requirements. Message storage, fixed recipient, Reply-To, deduplication, rate limits and actual Gmail delivery remain part of Sprint 0.
 
@@ -56,8 +56,8 @@ As checked against [Node's release table](https://nodejs.org/en/about/previous-r
 ## Decisions and prerequisites still missing
 
 - Design decision resolved: the owner explicitly approved keeping brief 02's restrictions.
-- The owner supplied the workers.dev suffix, Access team URL, owner identity, notification sender and verified Gmail destination. Wrangler deployment and the Access redirect are independently observed; successful MFA and Gmail delivery still require live evidence.
-- The concrete Access application audience/issuer and resource IDs once the owner configures them; keep credentials out of chat.
+- The owner supplied the workers.dev suffix, Access team URL, owner identity, notification sender and verified Gmail destination. Wrangler deployment and the Access redirect are independently observed; the owner confirmed successful Independent MFA and Gmail Inbox delivery.
+- The Access audience/issuer and database IDs are configured in ignored deployment files. The updated CV-label migration is applied to local and remote content D1.
 - Actual free-plan configuration, repository Actions settings, narrowly scoped deployment credentials and final deployment names.
 
 No account names, account IDs, MFA enrollment, DNS changes or billing settings have been inferred from the GitHub handle. Existing setup may satisfy these prerequisites; discover its status before duplicating resources.
@@ -96,7 +96,7 @@ Required evidence:
 - Owner confirms a backup authenticator and recovery path without exporting credentials.
 - Repeat on a custom domain when one is attached; the bare-address proof must not wait on that domain.
 
-Current result: **NOT RUN**. Provider documentation establishes capability, not protection of this account.
+Current result: **CORE LOGIN PROOF PASSED**. Automated unauthenticated redirect and owner-confirmed fresh Independent MFA followed by a successful origin response. Non-owner and malformed JWT cases pass locally; a second live identity/preview-policy audit remains a launch check.
 
 ## Proof B — One save to a verified live publish
 
@@ -117,7 +117,7 @@ Verify static HTML has the content in the first response, sets no public session
 
 The brief's approximate two minutes is an expectation, not a measured result or a new acceptance threshold. Present actual numbers to the owner. Do not switch to SSR automatically.
 
-Current result: **NOT RUN**. No live URL, workflow or latency exists yet.
+Current result: **NOT RUN**. A reviewed publish workflow and authenticated diagnostic capture are implemented. CI secrets and default-branch workflow registration remain owner setup; see [the exact handoff](09-publish-spike-handoff.md). No live publish duration is claimed.
 
 ## Proof C — Real trilingual TeX Live compilation
 
@@ -129,7 +129,7 @@ Record, per locale: Actions run ID, template version, payload hash, compiler/ima
 
 Test cache correctness using template version plus the complete resolved payload: identical input hits; changed content, variant, locale, company, role or template invalidates. The full five presets belong to phase 5; this spike proves the engine/language risk without pretending all variants already exist.
 
-Current result: **NOT RUN**. The existing `My_CV.pdf` and local MiKTeX tools do not establish this proof.
+Current result: **INITIAL TEMPLATE COMPILED AND INSPECTED** using the actual GitHub Actions artifact above. Local PDF utilities only rendered those already compiled artifacts. The reference-derived template is being revalidated; final full-length CV pagination remains a later content-phase check.
 
 ## Proof D — One real contact submission through Gmail
 
@@ -139,15 +139,15 @@ Trace one random correlation ID through the accepted request, inbox row, fixed-r
 
 The owner must confirm Gmail received the message in the inbox rather than spam, and that Reply targets the visitor. API acceptance or an email send acknowledgement alone is not delivery proof. Confirm the admin reads it as plain text and the content snapshot contains none of it. Keep message bodies, addresses, tokens, headers and screenshots containing personal data out of Git and public Actions artifacts.
 
-Current result: **NOT RUN**. The owner reports domain setup and Gmail destination verification are complete; identifiers, the deployed contact endpoint and actual test-delivery confirmation are still pending.
+Current result: **DELIVERY TRACE PASSED** under the approved dummy-key exception: API → isolated inbox row → fixed-recipient send → owner-confirmed Gmail Inbox and Reply-To. The final browser form and real challenge remain future checks.
 
 ## Gate ledger
 
-| Gate                                                    | Live evidence | Result  |
-| ------------------------------------------------------- | ------------- | ------- |
-| Access + Independent MFA on bare address                | None          | Not run |
-| Save → publish → verify live, measured                  | None          | Not run |
-| EN/FR/AR TeX Live PDFs, measured and visually inspected | None          | Not run |
-| Contact → isolated inbox → Gmail, not spam              | None          | Not run |
+| Gate                                                    | Live evidence                                         | Result                          |
+| ------------------------------------------------------- | ----------------------------------------------------- | ------------------------------- |
+| Access + Independent MFA on bare address                | 302 plus owner-confirmed MFA and authenticated origin | Core proof passed               |
+| Save → publish → verify live, measured                  | Workflow prepared; owner CI setup pending             | Not run                         |
+| EN/FR/AR TeX Live PDFs, measured and visually inspected | Actions artifact inspected; revised layout pending    | Initial template passed         |
+| Contact → isolated inbox → Gmail, not spam              | Live API/D1/send plus Gmail confirmation              | Passed with dummy-key exception |
 
 Proceed to foundation/build phases only after these four results are supported by actual evidence and any unacceptable measured latency is resolved with the owner. Until then, report the missing dependency directly rather than substituting mocks or declaring the spike complete.

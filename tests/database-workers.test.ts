@@ -352,16 +352,20 @@ describe('isolated public contact path', () => {
       0,
     );
   });
-  it('checks the published dummy response contract only in explicit spike mode', async () => {
+  it('checks the observed dummy response contract only in explicit spike mode', async () => {
     const dummyEnv = {
       ...env(),
       PUBLIC_ORIGIN: 'http://localhost:4321',
       TURNSTILE_MODE: 'spike' as const,
-      TURNSTILE_HOSTNAME: 'localhost',
+      TURNSTILE_HOSTNAME: 'example.com',
       TURNSTILE_SECRET: '1x0000000000000000000000000000000AA',
     };
     const dummy = createContact(
-      async () => ({ success: true, hostname: 'localhost', action: 'test' }),
+      async () => ({
+        success: true,
+        hostname: 'example.com',
+        metadata: { result_with_testing_key: true },
+      }),
       () => clock,
     );
     expect(
@@ -383,7 +387,12 @@ describe('isolated public contact path', () => {
       ).status,
     ).toBe(503);
     const wrong = createContact(
-      async () => ({ success: true, hostname: 'localhost', action: 'wrong' }),
+      async () => ({
+        success: true,
+        hostname: 'example.com',
+        action: 'wrong',
+        metadata: { result_with_testing_key: true },
+      }),
       () => clock,
     );
     expect(

@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, cp } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 // Maintained full TeX Live image; linux/amd64 digest from its published package.
@@ -35,6 +35,9 @@ const measurements: {
 for (const locale of ['en', 'fr', 'ar']) {
   const directory = resolve(`artifacts/cv/${locale}`);
   await mkdir(directory, { recursive: true });
+  await cp('packages/cv-engine/fonts', `${directory}/fonts`, {
+    recursive: true,
+  });
   await writeFile(
     `${directory}/cv.tex`,
     await readFile(`artifacts/cv/${locale}.tex`),

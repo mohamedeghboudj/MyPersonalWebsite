@@ -44,14 +44,22 @@ export const snapshot: Snapshot = {
   ],
   publicVariant: {
     id: 1,
-    translations: [{ locale: 'en', summary: 'Synthetic summary' }],
+    translations: [
+      {
+        locale: 'en',
+        summary: 'Synthetic summary',
+        profileHeading: 'Profile',
+        educationHeading: 'Education',
+        presentLabel: 'Present',
+      },
+    ],
     items: [{ contentItemId: 1, position: 0 }],
   },
 };
 describe('temporary Sprint 0 Turnstile configuration', () => {
   const config = {
     PUBLIC_ORIGIN: 'http://localhost:4321',
-    TURNSTILE_HOSTNAME: 'localhost',
+    TURNSTILE_HOSTNAME: 'example.com',
     TURNSTILE_SECRET: dummyTurnstile.secret,
     RATE_LIMIT_SALT: 'local-test-salt-000000000000000000',
     NOTIFICATION_FROM: 'contact@example.com',
@@ -74,7 +82,7 @@ describe('temporary Sprint 0 Turnstile configuration', () => {
       contactEnvSchema.safeParse({
         ...config,
         TURNSTILE_MODE: 'spike',
-        TURNSTILE_HOSTNAME: 'example.com',
+        TURNSTILE_HOSTNAME: 'wrong.example.com',
       }).success,
     ).toBe(false);
     expect(
@@ -268,9 +276,17 @@ describe('LaTeX security and multilingual assembly', () => {
     const payload = assembleCv(snapshot, 'ar');
     const tex = renderLatex(payload);
     expect(tex).toContain('\\setdefaultlanguage{arabic}');
-    expect(tex).toContain('\\textenglish{Project Atlas ');
+    expect(tex).toContain('\\textenglish{Project Atlas} ');
+    expect(tex).toContain('\\textenglish{TypeScript} ');
     payload.items[0]!.description = 'العربية \\input{secret}';
     expect(() => renderLatex(payload)).toThrow();
+  });
+  it('keeps URLs outside French punctuation spacing rules', () => {
+    const payload = assembleCv(snapshot, 'fr');
+    payload.items[0]!.schoolUrl = 'https://example.com/cv?lang=fr&year=2026';
+    expect(renderLatex(payload)).toContain(
+      '\\textenglish{https://example.com/cv?lang=fr\\&year=2026}',
+    );
   });
   it('escapes target fields and invalidates cache for every resolved input change', async () => {
     const base = assembleCv(snapshot, 'en', { company: 'A&B', role: 'R&D' });

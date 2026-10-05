@@ -98,7 +98,15 @@ export const snapshotSchema = z
         id: z.number().int().positive(),
         translations: z
           .array(
-            z.object({ locale: localeSchema, summary: plain(2000) }).strict(),
+            z
+              .object({
+                locale: localeSchema,
+                summary: plain(2000),
+                profileHeading: oneLine(80).default('Profile'),
+                educationHeading: oneLine(80).default('Education'),
+                presentLabel: oneLine(40).default('Present'),
+              })
+              .strict(),
           )
           .min(1),
         items: z.array(

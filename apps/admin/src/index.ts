@@ -16,6 +16,7 @@ import {
   audit,
 } from '@platform/database';
 import { verifyAccess, type VerifyAccess } from './auth';
+import { spikePage, spikeScript } from './spike';
 
 type Bindings = {
   CONTENT: D1Database;
@@ -59,6 +60,18 @@ export function createAdmin(verify: VerifyAccess = verifyAccess) {
     await next();
   });
   app.get('/api/session', (c) => c.json({ authenticated: true }));
+  app.get('/spike', (c) => {
+    c.header(
+      'Content-Security-Policy',
+      "default-src 'none'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+    );
+    return c.html(spikePage);
+  });
+  app.get('/spike.js', (c) =>
+    c.body(spikeScript, 200, {
+      'Content-Type': 'application/javascript; charset=utf-8',
+    }),
+  );
   app.put('/api/education/:id', async (c) => {
     const id = z.coerce
       .number()

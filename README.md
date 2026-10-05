@@ -2,7 +2,7 @@
 
 Personal platform for **MOHAMED CHARAF EDDINE DEGHBOUDJ**: an English, French and Arabic static site, an owner-only content console, and a LaTeX CV engine backed by the same content database.
 
-**Current stage: Sprint 0 risk spike.** Local data paths work; the four required live proofs are still pending. This is a diagnostic scaffold, not the finished portfolio or admin UI. Read the [architecture](docs/01-architecture-overview.md), [design](docs/02-design-ui-ux.md), [database](docs/03-database-infrastructure.md), [engineering](docs/04-engineering-qa-review.md), and [security](docs/05-security.md) briefs in order before extending it. The [reference review](docs/06-design-reference-review.md) records the approved visual restrictions; the [Sprint 0 ledger](docs/07-sprint-0-readiness.md) records evidence and remaining gates.
+**Current stage: Sprint 0 risk spike.** Live Access/MFA and Gmail delivery are confirmed. Initial trilingual compilation passed; the reference-derived template is being validated. Measured live publication remains pending. This is a diagnostic scaffold, not the finished portfolio or admin UI. Read the [architecture](docs/01-architecture-overview.md), [design](docs/02-design-ui-ux.md), [database](docs/03-database-infrastructure.md), [engineering](docs/04-engineering-qa-review.md), and [security](docs/05-security.md) briefs in order before extending it. The [reference review](docs/06-design-reference-review.md) and [Sprint 0 ledger](docs/07-sprint-0-readiness.md) record decisions and evidence.
 
 ## Local development
 
@@ -43,15 +43,17 @@ Copy each Worker's `.dev.vars.example` to its ignored `.dev.vars` only when fill
 | `PUT /api/education/:id`      | Transactional content/translation/CV-selection save and audit   |
 | `PUT /api/profile`            | Transactional profile save and audit                            |
 | `GET /api/snapshot`           | Explicit public field projection with hash                      |
-| `POST /api/publish/capture`   | Capture snapshot/hash; workflow dispatch is not implemented yet |
+| `POST /api/publish/capture`   | Capture snapshot/hash for the owner-dispatched publish workflow |
 | `GET /api/inbox`              | Owner-only inbox JSON                                           |
 | `POST /api/inbox/:id/replied` | Mark message replied and audit                                  |
 | `POST /contact`               | Isolated Turnstile-verified contact ingestion                   |
 
-Mutations require the configured origin. The admin verifies Access JWT signature, issuer, audience, expiry and owner email independently of the edge. The contact Worker binds only inbox D1. It bounds and validates input, checks Turnstile hostname/action, enforces atomic visitor/global quotas, deduplicates submissions, stores before notification, and reports failed sends in the inbox. Notification delivery still requires the real fixed-recipient Email binding and an end-to-end Gmail check.
+Mutations require the configured origin. The admin verifies Access JWT signature, issuer, audience, expiry and owner email independently of the edge. The contact Worker binds only inbox D1. It bounds and validates input, checks Turnstile hostname/action, enforces atomic visitor/global quotas, deduplicates submissions, stores before notification, and reports failed sends in the inbox. The owner-approved spike uses Cloudflare's dummy response contract; production mode rejects dummy keys. The live fixed-recipient notification reached the owner's Gmail Inbox with correct Reply-To.
 
 ## Verification and remaining work
 
 The local suite covers real SQLite/D1 transactions and rollback, append-only audit, selection foreign keys, database isolation, snapshot privacy, actual JWT verification, contact retries/concurrent quotas/retention, translation fallback and adversarial LaTeX input. CI runs typecheck, lint, format, tests, dependency audit and a static build. The separate CV workflow compiles committed synthetic fixtures on pull requests without secrets; private CV variants must never use its public artifacts.
 
-Sprint 0 still needs the live Access + Independent MFA proof, a complete measured GitHub Actions publish pipeline, measured/visually inspected EN/FR/AR PDFs, and a real message confirmed in Gmail rather than spam. No full content schema, React console, design system, hero, timeline, projects or generated visuals start before these gates pass. Account configuration, MFA enrollment and inbox confirmation remain owner actions as specified in the briefs.
+The owner-supplied English/French TeX references guide the [shared CV layout](docs/08-cv-reference-review.md). Poppins fonts and their license are bundled and verified; Arabic uses Amiri and real RTL shaping. Reference files and personal contact details stay outside the public repository.
+
+The protected `/spike` diagnostic saves an item and downloads a public snapshot capture for the measured publish workflow. The [publish handoff](docs/09-publish-spike-handoff.md) lists the exact owner-only CI setup and measurement steps. Full content schema, React console, design system, hero, timeline, projects and generated visuals remain gated on the completed risk proofs.

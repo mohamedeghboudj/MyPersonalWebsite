@@ -8,6 +8,7 @@ coverage/
 test-results/
 playwright-report/
 artifacts/
+apps/site/public/cv/
 .dev.vars
 .dev.vars.*
 .env
@@ -16,6 +17,9 @@ artifacts/
 !.dev.vars.example
 wrangler.remote.json
 wrangler.spike.json
+# Owner-supplied CV source references contain private contact details.
+Deghboudj_CV.tex
+Deghboudj_CV_FR.tex
 *.log
 *.aux
 *.out
