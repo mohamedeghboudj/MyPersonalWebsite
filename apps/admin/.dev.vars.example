@@ -1,0 +1,4 @@
+ACCESS_ISSUER=https://YOUR-TEAM.cloudflareaccess.com
+ACCESS_AUDIENCE=REPLACE_WITH_APPLICATION_AUDIENCE
+OWNER_EMAIL=owner@example.com
+ADMIN_ORIGIN=http://localhost:8787

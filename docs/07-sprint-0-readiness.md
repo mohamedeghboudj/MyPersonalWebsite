@@ -1,0 +1,153 @@
+# Sprint 0 readiness and evidence plan
+
+Status as of 2026-10-05: Sprint 0 implementation and partial live checks are underway. **None of the four gates is complete.** The owner approved retaining brief 02's restrictions, authorized Wrangler/local development and D1 creation, supplied the existing account configuration, and explicitly authorized deploying the admin placeholder before its Access AUD exists.
+
+## Evidence recorded so far
+
+- Pinned Node 24.21.0 / pnpm 10.34.6; typecheck, lint, formatting and **37 local tests pass**. Dependency audit reports no known vulnerabilities.
+- Wrangler's local D1 migrations pass. Saving synthetic content produces revision 1, the allowlisted snapshot, all three static HTML routes, and EN/FR/AR LaTeX sources. Static output validation passes. Local timings are in ignored `artifacts/local-evidence.json` and are **not live publish latency**.
+- Separate remote content and inbox databases were created. Their initial migrations completed successfully (27 and 13 commands respectively). Account/database IDs are retained only in ignored local deployment configuration.
+- Admin Worker deployed successfully. An unauthenticated `/api/session` request returned **302** to the configured Access team's login. This proves edge interception, not the owner policy, the Independent MFA ceremony, or successful origin JWT validation. AUD remains pending; the origin rejects incomplete configuration. Exact URL/version evidence is kept in ignored `artifacts/remote-evidence.json`.
+- Contact Worker deployed with only inbox D1 and fixed-recipient Email bindings. Addresses and account identifiers remain in ignored deployment configuration. The rate-limit salt was generated locally and stored with `wrangler secret bulk`; its temporary file was removed without printing the value. No test message has been sent yet.
+- Full TeX Live GitHub Actions workflow is prepared; real compilation and Arabic visual inspection remain pending.
+
+## Explicit Sprint 0 exception approved by the owner
+
+On 2026-10-05 the owner instructed use of Cloudflare's permanent dummy Turnstile pair for Sprint 0 and deferred the real widget until launch. This explicitly changes the real-challenge part of proof D below. Server-side Siteverify still runs; hostname/action are checked against the documented dummy contract (`localhost` / `test`). Production mode rejects dummy keys, and spike mode restricts the permitted page origin to localhost or the dedicated `mohamedeghboudj-site-spike.*.workers.dev` host. [Cloudflare's test-key documentation](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) describes the dummy response.
+
+Dummy keys do not demonstrate bot resistance, real token expiry or single-use enforcement. A real widget and those checks remain launch requirements. Message storage, fixed recipient, Reply-To, deduplication, rate limits and actual Gmail delivery remain part of Sprint 0.
+
+This document supplements briefs 01–05. It does not change their decisions or permit proceeding to Sprint 1 before the four proofs succeed and the measured latency is accepted.
+
+## Confirmed understanding
+
+1. Zero ongoing service cost: use permanent free tiers within their limits, not trials or expiring credits. Account/billing changes belong to the owner.
+2. Reuse infrastructure: Access handles authentication, Turnstile handles challenges, maintained TeX Live tooling handles compilation. Custom work concerns this person's content and behavior.
+3. All public content is console-managed. Saves are immediate; publishing performs the deliberately accepted static rebuild. No content edit needs a source-code edit.
+4. The content D1 database is the authoritative source for the site and all CVs. Build snapshots and PDF caches are derived artifacts, not another editable datastore. Inbox D1 is a separate security boundary.
+5. There is one privileged owner. No team roles, multi-tenancy, password store or custom credential system.
+
+The hero establishes identity, the timeline reveals chronology, and projects receive the most interactive attention after the hero. Supporting sections remain calm so these three moments have contrast. All motion is added after the functional platform, with RTL and a deliberately designed reduced-motion presentation.
+
+Access supplies the identity check and its own independent hardware/biometric second factor. The Worker also verifies the JWT signature, issuer, audience and expiry. Full TeX Live in GitHub Actions supplies the Arabic packages and fonts; the briefs explicitly reject Tectonic's frozen-bundle risk and browser compilation. Public CVs compile during publish; authenticated owner dispatch handles custom variants. No public compile endpoint.
+
+## Initial workspace observations (before the local scaffold)
+
+| Check                      | Observed result                                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace                  | `D:\Business\MyWebsite`                                                                                                           |
+| Shell                      | Windows PowerShell 5.1, Desktop edition                                                                                           |
+| Initial tool path check    | Node and pnpm resolve outside conda directories                                                                                   |
+| Node                       | `26.9.0`, `C:\Program Files\nodejs\node.exe`                                                                                      |
+| pnpm                       | `12.6.0` via `pnpm.cmd`; PowerShell execution policy rejects `pnpm.ps1`                                                           |
+| Corepack / version manager | `corepack`, `nvm`, `fnm` not found by `Get-Command`                                                                               |
+| Other tools                | Git available; `gh`, `wrangler`, Docker not found on PATH; MiKTeX PDF utilities are present but are not the specified CV compiler |
+| Git                        | Clean `main` tracking `origin/main` at initial inspection; initial commit `a394be4`                                               |
+| Remote                     | `git@github.com:mohamedeghboudj/MyPersonalWebsite.git`                                                                            |
+| GitHub connector           | Repository access confirmed; repository is public; default branch is `main`                                                       |
+| Existing files             | Five briefs, eleven design references, a placeholder README, a CV PDF and four portraits/cutouts; no application or CI scaffold   |
+| Project instructions       | No `AGENTS.md` found in the listed workspace files or checked ancestor locations                                                  |
+| Higgsfield                 | Image-model discovery succeeded; no generation performed                                                                          |
+
+The GitHub connector result confirms read access, not successful Git pushes, CI credentials, Actions configuration or deployment permission. Public repository artifacts/logs must never contain unpublished snapshots, private CV variants, company/role prompts, contact data or secrets. Use synthetic/public spike content only.
+
+As checked against [Node's release table](https://nodejs.org/en/about/previous-releases), Node 26 is Current and Node 24 is LTS; the page reports 24.21.0 as the latest LTS. Verify the patch at implementation time, then pin one exact LTS version in `.nvmrc`, `engines` and CI. Pin an explicitly compatible pnpm release through `packageManager` and Corepack; do not silently inherit the installed global versions. Use Windows `.cmd` shims where necessary rather than changing execution policy.
+
+## Decisions and prerequisites still missing
+
+- Design decision resolved: the owner explicitly approved keeping brief 02's restrictions.
+- The owner supplied the workers.dev suffix, Access team URL, owner identity, notification sender and verified Gmail destination. Wrangler deployment and the Access redirect are independently observed; successful MFA and Gmail delivery still require live evidence.
+- The concrete Access application audience/issuer and resource IDs once the owner configures them; keep credentials out of chat.
+- Actual free-plan configuration, repository Actions settings, narrowly scoped deployment credentials and final deployment names.
+
+No account names, account IDs, MFA enrollment, DNS changes or billing settings have been inferred from the GitHub handle. Existing setup may satisfy these prerequisites; discover its status before duplicating resources.
+
+## Owner-only setup handoff
+
+These steps are for the owner because the original request reserves browser-opening commands and account changes to them. Do not run `wrangler login`, `gh auth login`, or dashboard mutations on the owner's behalf. Only execute the steps that are not already complete.
+
+1. **Local runtime — ready in this workspace:** Node 24.21.0 was downloaded from the official distribution, SHA-256 verified and installed under ignored `.tools`; Corepack 0.36.0 selects pinned pnpm 10.34.6. Use `scripts\pnpm.cmd` here. No system Node or execution-policy change was made. Other checkouts need their own Node/Corepack setup. Do not use conda or pip.
+2. **Workers namespace:** in Cloudflare's Workers & Pages area, confirm or register the account-wide `workers.dev` subdomain yourself. Record the resulting non-secret suffix. Do not register a guessed value from a proposed project name.
+3. **Zero Trust:** enable the free setup if needed and choose the team name yourself. Enable the App Launcher with an owner-email-only Allow policy. Keep account recovery information private.
+4. **MFA enrollment:** under Zero Trust → Access controls → Access settings, enable independent MFA methods; allow enrollment of hardware/biometric authenticators and a backup method, leave **Use identity provider MFA off**, and start with a one-hour duration. Enroll at the team's `/AddMfaDevice` page. On the admin policy, require hardware key/biometric authentication; allowing TOTP enrollment as recovery must not silently make TOTP an ordinary substitute for that requirement. See [Independent MFA](https://developers.cloudflare.com/cloudflare-one/access-controls/access-settings/independent-mfa/).
+5. **Worker protection, after the fail-closed spike Worker is ready:** Workers & Pages → select the admin spike Worker → Access → Protect this Worker behind Access → **All traffic** → owner-only policy → Apply Access. Check its hardware/biometric MFA requirement in Zero Trust. Protecting just previews is insufficient. This Worker-level mode covers the Worker's routes, custom domains, `workers.dev` and previews. See [Worker Access](https://developers.cloudflare.com/workers/configuration/cloudflare-access/).
+6. **Mail prerequisites:** on the owner's chosen domain, enable Email Routing and complete the Gmail destination verification. Review the DNS changes yourself. The sending address must belong to an onboarded domain; restrict the send binding to the one verified owner destination. [Binding restrictions](https://developers.cloudflare.com/email-service/configuration/send-bindings/) and [email pricing](https://developers.cloudflare.com/email-service/platform/pricing/) document this free notification path. Do not enable paid arbitrary-recipient sending to satisfy the spike.
+7. **Contact challenge:** Sprint 0 now uses the explicitly approved public dummy keypair. Before launch, create/configure the real Turnstile widget for the final hostnames and switch to production mode. Save its real secret through local `.dev.vars` or deployed `wrangler secret put`, never chat. The site key is public configuration.
+8. **Credentials, when the scaffold supplies exact names:** store scoped deployment credentials in GitHub Actions secrets; use `.dev.vars` locally and `wrangler secret put` for deployed Worker secrets. Login commands are run interactively by the owner. No Global API Key. Keep publish/deploy credentials outside the compiler sandbox.
+
+R2 account activation, a usage alert, private backup repository setup, passkey enforcement and other account controls remain owner tasks at their relevant phase. A billing alert is informational and cannot guarantee a hard spending cap. Do not claim zero-cost validation based on an alert alone.
+
+## Minimal implementation boundary
+
+Create only the code needed to test the four risks, plus the validation and security checks required for those paths. This is not permission to start the complete console, public page designs, all CRUD screens, the full schema, motion or 3D.
+
+Use a small synthetic content item in the content database with a translation table and a real `content_items` identity. Use an authenticated, plain diagnostic save/publish interface and an explicitly allowlisted snapshot. Build the minimal static Astro output and its public CV from the same immutable snapshot. Keep a separate Hono contact Worker with only the inbox database and required notification/challenge configuration. Drizzle, Zod, strict TypeScript, parameterized writes, transactional batches, audit records and origin checks apply even to the spike.
+
+The initial admin Worker must deny access until configuration and JWT verification succeed. No development bypass may be deployable. Any machine-only publish access must be scoped separately to the minimum snapshot/status operations, without a bypass that opens owner CRUD or disables the human MFA policy.
+
+## Proof A — Access and independent MFA
+
+Required evidence:
+
+- Exact tested `workers.dev` URL and preview URL, Access application identifier and deployed version, with tokens and personal account details redacted.
+- Fresh private-window owner login showing both identity authentication and an independent hardware/biometric challenge.
+- Denied unauthenticated access and denied non-owner identity; direct API requests must not return protected content.
+- JWT checks reject missing, forged, expired, wrong-issuer and wrong-audience assertions. A successful Access page alone does not prove origin validation.
+- Owner confirms a backup authenticator and recovery path without exporting credentials.
+- Repeat on a custom domain when one is attached; the bare-address proof must not wait on that domain.
+
+Current result: **NOT RUN**. Provider documentation establishes capability, not protection of this account.
+
+## Proof B — One save to a verified live publish
+
+Use a harmless unique marker in the content item. Record these server timestamps and IDs:
+
+| Event                  | Required evidence                                                         |
+| ---------------------- | ------------------------------------------------------------------------- |
+| Save acknowledged      | Content item/revision ID; committed timestamp; audit entry                |
+| Publish requested      | Publish ID; snapshot hash; request timestamp                              |
+| Actions queued/started | Run URL/ID; queued and job-start timestamps                               |
+| Build and CV finished  | Matching snapshot hash; build/compile stage durations                     |
+| Deployment accepted    | Deployment version ID and completion timestamp                            |
+| Public verification    | First response containing the marker and expected revision for each route |
+
+Report save-to-live and publish-click-to-live separately. Include queue, image/container download, build, compile, deploy and observation intervals; a compiler-only duration is not a publish duration. Measure a cold run and a warm repeat when possible, without claiming a small sample is a production percentile.
+
+Verify static HTML has the content in the first response, sets no public session cookie, and has no request-time D1/R2 dependency. Prove hidden/private columns and inbox content cannot enter the snapshot. Test overlapping publishes so an older revision cannot replace a newer one; a failed publish leaves the last good site live. Verify an English-only item remains present via fallback on `/fr/` and `/ar/`.
+
+The brief's approximate two minutes is an expectation, not a measured result or a new acceptance threshold. Present actual numbers to the owner. Do not switch to SSR automatically.
+
+Current result: **NOT RUN**. No live URL, workflow or latency exists yet.
+
+## Proof C — Real trilingual TeX Live compilation
+
+Run in GitHub Actions using full TeX Live, a pinned container digest and commit-pinned Actions. Preload packages/fonts before the compile sandbox starts; do not rely on a network fetch during TeX execution. The compile process gets shell-escape disabled, no network, a hard timeout, bounded CPU/memory, limited filesystem mounts and no deployment secrets. Publish/deploy occurs outside that boundary.
+
+Use one immutable synthetic/public payload in English, French and Arabic. Include accented French text, Arabic paragraphs and mixed-direction content such as an English project name and URL within Arabic context. Every field uses the same data-only escaping/rejection path, including company/role inputs. Run adversarial tests for special TeX characters and prohibited control sequences before compiling.
+
+Record, per locale: Actions run ID, template version, payload hash, compiler/image/font versions, cold/warm image-fetch time, TeX wall time, PDF validation time and total dispatch-to-ready time. Inspect rendered pages, not merely the process exit code: joined Arabic glyphs, RTL ordering, diacritics, mixed text, line breaks, clipping and font embedding. Text extraction is supporting evidence, not visual proof.
+
+Test cache correctness using template version plus the complete resolved payload: identical input hits; changed content, variant, locale, company, role or template invalidates. The full five presets belong to phase 5; this spike proves the engine/language risk without pretending all variants already exist.
+
+Current result: **NOT RUN**. The existing `My_CV.pdf` and local MiKTeX tools do not establish this proof.
+
+## Proof D — One real contact submission through Gmail
+
+Submit from the actual permitted public hostname with a server-verified Turnstile token, applying the owner's documented dummy-key exception for Sprint 0. Verify hostname/action, honeypot, minimum elapsed time, request-size limits, Zod validation, per-visitor/global database-enforced rate limits and idempotency. Test retry behavior without requiring an already-consumed Turnstile token to create a second submission.
+
+Trace one random correlation ID through the accepted request, inbox row, fixed-recipient notification and owner inbox inspection. Ensure email delivery failure is visible/retryable without duplicating the stored message. The sender is the configured domain address; the visitor appears only in validated Reply-To. Strip or reject header line breaks.
+
+The owner must confirm Gmail received the message in the inbox rather than spam, and that Reply targets the visitor. API acceptance or an email send acknowledgement alone is not delivery proof. Confirm the admin reads it as plain text and the content snapshot contains none of it. Keep message bodies, addresses, tokens, headers and screenshots containing personal data out of Git and public Actions artifacts.
+
+Current result: **NOT RUN**. The owner reports domain setup and Gmail destination verification are complete; identifiers, the deployed contact endpoint and actual test-delivery confirmation are still pending.
+
+## Gate ledger
+
+| Gate                                                    | Live evidence | Result  |
+| ------------------------------------------------------- | ------------- | ------- |
+| Access + Independent MFA on bare address                | None          | Not run |
+| Save → publish → verify live, measured                  | None          | Not run |
+| EN/FR/AR TeX Live PDFs, measured and visually inspected | None          | Not run |
+| Contact → isolated inbox → Gmail, not spam              | None          | Not run |
+
+Proceed to foundation/build phases only after these four results are supported by actual evidence and any unacceptable measured latency is resolved with the owner. Until then, report the missing dependency directly rather than substituting mocks or declaring the spike complete.

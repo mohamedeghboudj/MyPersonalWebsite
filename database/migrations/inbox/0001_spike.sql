@@ -1,0 +1,12 @@
+PRAGMA foreign_keys = ON;
+CREATE TABLE rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires_at INTEGER NOT NULL);
+CREATE INDEX rate_expiry ON rate_limits(expires_at);
+CREATE TABLE contact_messages (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, message TEXT NOT NULL, idempotency_key TEXT NOT NULL, request_hash TEXT NOT NULL, visitor_hash TEXT NOT NULL, created_at INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'unread' CHECK(status IN ('unread','read','replied')), notification_status TEXT NOT NULL DEFAULT 'pending' CHECK(notification_status IN ('pending','sending','sent','failed')));
+CREATE UNIQUE INDEX contact_idempotency ON contact_messages(idempotency_key);
+CREATE INDEX contact_created ON contact_messages(created_at);
+CREATE INDEX contact_visitor_time ON contact_messages(visitor_hash, created_at);
+CREATE TABLE threads (id TEXT PRIMARY KEY, contact_message_id TEXT NOT NULL REFERENCES contact_messages(id) ON DELETE CASCADE);
+CREATE INDEX threads_contact ON threads(contact_message_id);
+CREATE TABLE outbox (id TEXT PRIMARY KEY, thread_id TEXT REFERENCES threads(id) ON DELETE CASCADE, recipient TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', sent_at INTEGER);
+CREATE INDEX outbox_thread ON outbox(thread_id);
+CREATE INDEX outbox_status ON outbox(status);

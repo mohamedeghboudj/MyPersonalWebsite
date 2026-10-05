@@ -1,0 +1,50 @@
+{
+  "name": "mohamedeghboudj-platform",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": "24.21.0",
+    "pnpm": "10.34.6"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "db:content": "wrangler d1 migrations apply CONTENT --local --config apps/admin/wrangler.json --persist-to .wrangler/state",
+    "db:inbox": "wrangler d1 migrations apply INBOX --local --config worker/contact/wrangler.json --persist-to .wrangler/state",
+    "db:local": "pnpm db:content && pnpm db:inbox",
+    "spike:local": "node scripts/local-spike.ts",
+    "cv:prepare": "node scripts/prepare-cv.ts",
+    "cv:compile": "node scripts/compile-cv.ts",
+    "build:site": "pnpm --filter @platform/site build",
+    "check:static": "node scripts/check-static.ts",
+    "dev:admin": "wrangler dev --local --config apps/admin/wrangler.json --persist-to .wrangler/state --port 8787",
+    "dev:contact": "wrangler dev --local --config worker/contact/wrangler.json --persist-to .wrangler/state --port 8788",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
+  },
+  "dependencies": {
+    "@platform/config": "workspace:*",
+    "@platform/cv-engine": "workspace:*",
+    "@platform/database": "workspace:*",
+    "@platform/schema": "workspace:*",
+    "drizzle-orm": "0.45.3",
+    "hono": "4.13.13",
+    "jose": "6.2.12",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261004.1",
+    "@types/node": "24.10.1",
+    "astro": "7.3.5",
+    "eslint": "10.12.0",
+    "miniflare": "5.20261001.0-alpha",
+    "prettier": "3.9.9",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.0",
+    "vitest": "5.0.3",
+    "wrangler": "4.147.0"
+  }
+}
