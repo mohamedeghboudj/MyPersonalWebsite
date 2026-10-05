@@ -1,0 +1,10 @@
+node_modules
+.tools
+.cache
+.wrangler
+.astro
+dist
+artifacts
+pnpm-lock.yaml
+docs/0[1-5]-*.md
+design-references
