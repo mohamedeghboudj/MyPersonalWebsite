@@ -12,7 +12,7 @@ export const spikePage = `<!doctype html>
 <button id="save" type="button">Save test item</button>
 <button id="capture" type="button" disabled>Capture publish request</button>
 <p id="status" role="status" aria-live="polite">Save once, then capture the immutable public snapshot.</p>
-<p>Capture downloads JSON for the owner-only GitHub Actions publish workflow. It contains only the public snapshot, its hash and the start timestamp. Use the downloaded JSON unchanged; the measured time includes the manual dispatch handoff.</p>
+<p>Capture downloads JSON for the owner-only GitHub Actions publish workflow. It contains only the public snapshot, its hash and save/publish timestamps. Use the downloaded JSON unchanged; the measured time includes the manual dispatch handoff.</p>
 </main></body></html>`;
 export const spikeScript = `
 const status = document.getElementById('status');

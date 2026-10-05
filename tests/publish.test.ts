@@ -43,8 +43,15 @@ describe('publish ordering and immutable snapshot handoff', () => {
       snapshot,
       hash: await sha256(JSON.stringify(snapshot)),
       capturedAt: new Date(now).toISOString(),
+      savedAt: new Date(now - 1000).toISOString(),
     };
     expect(await parsePublishCapture(capture, now)).toEqual(capture);
+    await expect(
+      parsePublishCapture(
+        { ...capture, savedAt: new Date(now + 1).toISOString() },
+        now,
+      ),
+    ).rejects.toThrow('Save timestamp');
     await expect(
       parsePublishCapture({ ...capture, hash: '0'.repeat(64) }, now),
     ).rejects.toThrow('hash');

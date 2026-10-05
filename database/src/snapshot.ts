@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, desc } from 'drizzle-orm';
 import { snapshotSchema, type Locale } from '@platform/schema';
 import {
   profile,
@@ -10,11 +10,18 @@ import {
   variantTranslations,
   variantItems,
   state,
+  audit,
 } from './tables.ts';
 
 // Explicit projections only. No SELECT *, spread of database rows, inbox binding,
 // or caller-supplied table/column names can enter the publishing path.
 export async function createSnapshot(content: D1Database) {
+  return (await capturePublishSource(content)).snapshot;
+}
+
+// Save evidence is read in the same D1 batch as the immutable public snapshot.
+// Only its timestamp is projected; identities and audit payloads remain private.
+export async function capturePublishSource(content: D1Database) {
   const db = drizzle(content);
   const [
     revision,
@@ -25,6 +32,7 @@ export async function createSnapshot(content: D1Database) {
     presets,
     summaries,
     selections,
+    saves,
   ] = await db.batch([
     db.select({ revision: state.revision }).from(state).where(eq(state.id, 1)),
     db
@@ -85,9 +93,15 @@ export async function createSnapshot(content: D1Database) {
       .innerJoin(education, eq(education.id, variantItems.contentItemId))
       .where(eq(variants.isPublic, true))
       .orderBy(asc(variantItems.position), asc(variantItems.contentItemId)),
+    db
+      .select({ savedAt: audit.createdAt })
+      .from(audit)
+      .where(eq(audit.action, 'save'))
+      .orderBy(desc(audit.id))
+      .limit(1),
   ]);
   const publicIds = new Set(items.map((item) => item.id));
-  return snapshotSchema.parse({
+  const snapshot = snapshotSchema.parse({
     schemaVersion: 1,
     revision: revision[0]?.revision,
     generatedAt: new Date().toISOString(),
@@ -113,6 +127,7 @@ export async function createSnapshot(content: D1Database) {
       items: selections.filter((item) => publicIds.has(item.contentItemId)),
     },
   });
+  return { snapshot, savedAt: saves[0]?.savedAt ?? null };
 }
 
 // Shared query/resolution layer: pages and CV templates do not invent fallbacks.

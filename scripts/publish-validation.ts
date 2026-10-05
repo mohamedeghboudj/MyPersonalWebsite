@@ -8,11 +8,14 @@ export async function parsePublishCapture(raw: unknown, now = Date.now()) {
       snapshot: snapshotSchema,
       hash: z.string().regex(/^[a-f0-9]{64}$/u),
       capturedAt: z.iso.datetime(),
+      savedAt: z.iso.datetime(),
     })
     .strict()
     .parse(raw);
   if ((await sha256(JSON.stringify(capture.snapshot))) !== capture.hash)
     throw new Error('Captured snapshot hash does not match');
+  if (Date.parse(capture.savedAt) > Date.parse(capture.capturedAt))
+    throw new Error('Save timestamp cannot follow capture');
   const age = now - Date.parse(capture.capturedAt);
   if (age < 0 || age > 30 * 60 * 1000)
     throw new Error(

@@ -10,6 +10,7 @@ import {
 } from '@platform/config';
 import {
   createSnapshot,
+  capturePublishSource,
   saveEducation,
   saveProfile,
   messages,
@@ -103,10 +104,10 @@ export function createAdmin(verify: VerifyAccess = verifyAccess) {
       'Content-Type': 'application/json; charset=utf-8',
     });
   });
-  // Snapshot capture is the spike's publish handoff. Deployment is an explicit CLI
-  // operation; this endpoint does not pretend to have dispatched a workflow.
+  // Snapshot capture is the spike's manual handoff to the owner-run workflow.
   app.post('/api/publish/capture', async (c) => {
-    const snapshot = await createSnapshot(c.env.CONTENT);
+    const { snapshot, savedAt } = await capturePublishSource(c.env.CONTENT);
+    if (!savedAt) return c.json({ error: 'Save a test item first' }, 409);
     const hash = await sha256(JSON.stringify(snapshot));
     await drizzle(c.env.CONTENT)
       .insert(audit)
@@ -116,7 +117,12 @@ export function createAdmin(verify: VerifyAccess = verifyAccess) {
         entity: `snapshot:${hash}`,
         createdAt: new Date().toISOString(),
       });
-    return c.json({ snapshot, hash, capturedAt: new Date().toISOString() });
+    return c.json({
+      snapshot,
+      hash,
+      savedAt,
+      capturedAt: new Date().toISOString(),
+    });
   });
   app.get('/api/inbox', async (c) =>
     c.json({

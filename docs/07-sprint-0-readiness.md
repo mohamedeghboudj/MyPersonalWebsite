@@ -4,7 +4,7 @@ Status as of 2026-10-05: **Access/MFA and contact delivery have live evidence.**
 
 ## Evidence recorded so far
 
-- Pinned Node 24.21.0 / pnpm 10.34.6; typecheck, lint, formatting and **39 local tests pass**. Dependency audit reports no known vulnerabilities. The initial GitHub CI run also passed.
+- Pinned Node 24.21.0 / pnpm 10.34.6; typecheck, lint, formatting and **40 local tests pass**. Dependency audit reports no known vulnerabilities. The initial GitHub CI run also passed.
 - Wrangler's local D1 migrations pass. Saving synthetic content produces revision 1, the allowlisted snapshot, all three static HTML routes, and EN/FR/AR LaTeX sources. Static output validation passes. Local timings are in ignored `artifacts/local-evidence.json` and are **not live publish latency**.
 - Separate remote content and inbox databases were created. Their initial migrations completed successfully (27 and 13 commands respectively). Account/database IDs are retained only in ignored local deployment configuration.
 - Admin Worker: unauthenticated `/api/session` returned **302** to Access. After the owner supplied the AUD, the origin was redeployed with independent JWT verification. The owner confirmed a fresh private-window Independent MFA prompt followed by `authenticated: true`. Exact URL/version evidence remains in ignored `artifacts/remote-evidence.json`.

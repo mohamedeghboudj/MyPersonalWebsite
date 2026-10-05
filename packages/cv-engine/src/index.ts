@@ -7,7 +7,7 @@ import {
 import { resolveTranslation } from '@platform/database';
 import { sha256 } from '@platform/config';
 
-export const templateVersion = 'reference-1';
+export const templateVersion = 'reference-2';
 const escapeMap: Record<string, string> = {
   '\\': '\\textbackslash{}',
   '{': '\\{',
@@ -138,7 +138,7 @@ export function renderLatex(payload: ReturnType<typeof assembleCv>): string {
 \\definecolor{hairline}{HTML}{B3B3B3}
 \\color{ink}
 \\newcommand{\\cvsection}[1]{\\par\\needspace{5\\baselineskip}\\vspace{${french ? '5' : '7'}pt}{\\bfseries\\fontsize{${rtl ? '13' : '11.3'}}{15}\\selectfont #1}\\par\\vspace{2pt}{\\color{hairline}\\hrule height 0.8pt}\\vspace{4pt}}
-\\newcommand{\\cventry}[3]{\\par\\needspace{4\\baselineskip}\\noindent\\parbox[t]{0.74\\linewidth}{{${rtl ? '\\bfseries' : '\\cvmedium'}\\fontsize{${rtl ? '11.5' : '9.9'}}{${rtl ? '15' : '12'}}\\selectfont #1}\\par{\\color{slate}\\fontsize{${rtl ? '11' : '9.3'}}{${rtl ? '15' : '11.8'}}\\selectfont #2}}\\hfill\\parbox[t]{0.23\\linewidth}{${rtl ? '\\raggedright' : '\\raggedleft'}\\color{slate}\\fontsize{${rtl ? '10.5' : '8.7'}}{13}\\selectfont #3}\\par\\vspace{2pt}}
+\\newcommand{\\cventry}[3]{\\par\\needspace{4\\baselineskip}\\noindent\\parbox[t]{0.74\\linewidth}{{${rtl ? '\\bfseries' : '\\cvmedium'}\\fontsize{${rtl ? '11.5' : '9.9'}}{${rtl ? '15' : '12'}}\\selectfont #1}\\par{${rtl ? '' : '\\itshape'}\\color{slate}\\fontsize{${rtl ? '11' : '9.3'}}{${rtl ? '15' : '11.8'}}\\selectfont #2}}\\hfill\\parbox[t]{0.23\\linewidth}{${rtl ? '\\raggedright' : '\\raggedleft\\cvlight'}\\color{slate}\\fontsize{${rtl ? '10.5' : '8.7'}}{13}\\selectfont #3}\\par\\vspace{2pt}}
 \\newenvironment{tightitemize}{\\begin{itemize}[leftmargin=11pt,itemsep=${french ? '0' : '0.5'}pt,topsep=2pt,parsep=0pt,partopsep=0pt]}{\\end{itemize}}
 \\newcommand{\\skillrow}[2]{\\noindent{\\bfseries #1${french ? '~' : ''}: }#2\\par\\vspace{2pt}}
 \\pagestyle{empty}
@@ -153,13 +153,13 @@ export function renderLatex(payload: ReturnType<typeof assembleCv>): string {
 \\end{center}
 \\cvsection{${text(payload.profileHeading, payload.summaryLocale)}}
 ${text(payload.summary, payload.summaryLocale)}\\par
-${payload.target ? `\\medskip${text('Application to', 'en')} ${text(payload.target.company, /[\u0600-\u06ff]/u.test(payload.target.company) ? 'ar' : 'en')} --- ${text(payload.target.role, /[\u0600-\u06ff]/u.test(payload.target.role) ? 'ar' : 'en')}\\par` : ''}
+${payload.target ? `\\medskip${text('Application to', 'en')} ${text(payload.target.company, /[\u0600-\u06ff]/u.test(payload.target.company) ? 'ar' : 'en')} — ${text(payload.target.role, /[\u0600-\u06ff]/u.test(payload.target.role) ? 'ar' : 'en')}\\par` : ''}
 ${payload.items.length ? `\\cvsection{${text(payload.educationHeading, payload.summaryLocale)}}` : ''}
 ${payload.items
   .map(
     (
       item,
-    ) => `\\cventry{${text(item.degree, item.locale)}}{${text(item.school, item.locale)}}{${text(item.startDate, 'en')} --- ${item.endDate ? text(item.endDate, 'en') : text(payload.presentLabel, payload.summaryLocale)}}
+    ) => `\\cventry{${text(item.degree, item.locale)}}{${text(item.school, item.locale)}}{${text(item.startDate, 'en')} — ${item.endDate ? text(item.endDate, 'en') : text(payload.presentLabel, payload.summaryLocale)}}
 ${text(item.description, item.locale)}\\par
 ${item.schoolUrl ? text(item.schoolUrl, 'en') + '\\par' : ''}\\vspace{3pt}`,
   )

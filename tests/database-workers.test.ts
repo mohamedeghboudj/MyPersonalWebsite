@@ -4,6 +4,7 @@ import { drizzle } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
 import {
   createSnapshot,
+  capturePublishSource,
   saveEducation,
   audit,
   messages,
@@ -45,6 +46,11 @@ describe('real local D1 content boundaries', () => {
     );
     const snapshot = await createSnapshot(local.content);
     expect(snapshot.revision).toBe(2);
+    const captured = await capturePublishSource(local.content);
+    expect(captured.savedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(captured.snapshot.revision).toBe(snapshot.revision);
+    expect(Object.keys(captured).sort()).toEqual(['savedAt', 'snapshot']);
+    expect(JSON.stringify(captured)).not.toContain('test-owner');
     expect(snapshot.education.map((item) => item.id)).toEqual([1]);
     expect(
       snapshot.publicVariant.items.map((item) => item.contentItemId),
