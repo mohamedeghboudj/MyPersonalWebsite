@@ -2,7 +2,7 @@
 
 Personal platform for **MOHAMED CHARAF EDDINE DEGHBOUDJ**: an English, French and Arabic static site, an owner-only content console, and a LaTeX CV engine backed by the same content database.
 
-**Current stage: Sprint 0 risk spike.** Live Access/MFA and Gmail delivery are confirmed. Initial trilingual compilation passed; the reference-derived template is being validated. Measured live publication remains pending. This is a diagnostic scaffold, not the finished portfolio or admin UI. Read the [architecture](docs/01-architecture-overview.md), [design](docs/02-design-ui-ux.md), [database](docs/03-database-infrastructure.md), [engineering](docs/04-engineering-qa-review.md), and [security](docs/05-security.md) briefs in order before extending it. The [reference review](docs/06-design-reference-review.md) and [Sprint 0 ledger](docs/07-sprint-0-readiness.md) record decisions and evidence.
+**Current stage: Sprint 0 risk spike.** Live Access/MFA and Gmail delivery are confirmed. The reference-derived CV layout has compiled and been visually inspected in all three languages. Measured live publication remains pending. This is a diagnostic scaffold, not the finished portfolio or admin UI. Read the [architecture](docs/01-architecture-overview.md), [design](docs/02-design-ui-ux.md), [database](docs/03-database-infrastructure.md), [engineering](docs/04-engineering-qa-review.md), and [security](docs/05-security.md) briefs in order before extending it. The [reference review](docs/06-design-reference-review.md) and [Sprint 0 ledger](docs/07-sprint-0-readiness.md) record decisions and evidence.
 
 ## Local development
 

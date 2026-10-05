@@ -1,6 +1,6 @@
 # Sprint 0 readiness and evidence plan
 
-Status as of 2026-10-05: **Access/MFA and contact delivery have live evidence.** Full TeX Live compilation succeeded; the newly supplied CV-reference layout is being revalidated. Measured live publication remains pending. The owner approved retaining brief 02's restrictions and the isolated dummy Turnstile exception.
+Status as of 2026-10-05: **Access/MFA, contact delivery and trilingual CV compilation have live evidence.** The newly supplied CV-reference layout has compiled and been visually inspected. Measured live publication remains pending. The owner approved retaining brief 02's restrictions and the isolated dummy Turnstile exception.
 
 ## Evidence recorded so far
 
@@ -9,7 +9,7 @@ Status as of 2026-10-05: **Access/MFA and contact delivery have live evidence.**
 - Separate remote content and inbox databases were created. Their initial migrations completed successfully (27 and 13 commands respectively). Account/database IDs are retained only in ignored local deployment configuration.
 - Admin Worker: unauthenticated `/api/session` returned **302** to Access. After the owner supplied the AUD, the origin was redeployed with independent JWT verification. The owner confirmed a fresh private-window Independent MFA prompt followed by `authenticated: true`. Exact URL/version evidence remains in ignored `artifacts/remote-evidence.json`.
 - Contact Worker: only inbox D1 and fixed-recipient Email bindings. A synthetic API submission returned 202; an explicit status-only D1 query showed one message with `notification_status: sent`. The owner confirmed Gmail Inbox placement and correct Reply-To. Addresses and correlation evidence stay in ignored files. No real bot-resistance or browser-form proof is claimed from this API trace.
-- [Full TeX Live Actions run](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/37268000833) succeeded. Cold image pull: 137.47 seconds. Per-pass EN 9.53/9.40s, FR 9.40/9.42s, AR 9.49/9.38s. Run creation to completion: about 232 seconds. All three one-page PDFs rendered; Arabic Amiri and Latin fonts were embedded. These numbers validate the initial minimal template. The Poppins/reference-derived template needs a fresh run.
+- [Reference-layout TeX Live run](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/37320683489) succeeded. Cold image pull: 136.16 seconds. Per-pass EN 9.84/9.56s, FR 9.60/9.52s, AR 9.60/9.58s. Run creation to completion: about 234 seconds. The artifact digest was verified before rendering all three one-page PDFs. Poppins and Amiri were embedded with Unicode mappings. French accents and URL punctuation, Arabic joining/RTL, mixed Latin runs, mirrored entries and absence of clipping were visually checked. A literal three-hyphen date separator was subsequently replaced with an em dash; the reference's italic institution and light date styles were also restored. The PR's latest compile check covers these refinements.
 
 ## Explicit Sprint 0 exception approved by the owner
 
@@ -129,7 +129,7 @@ Record, per locale: Actions run ID, template version, payload hash, compiler/ima
 
 Test cache correctness using template version plus the complete resolved payload: identical input hits; changed content, variant, locale, company, role or template invalidates. The full five presets belong to phase 5; this spike proves the engine/language risk without pretending all variants already exist.
 
-Current result: **INITIAL TEMPLATE COMPILED AND INSPECTED** using the actual GitHub Actions artifact above. Local PDF utilities only rendered those already compiled artifacts. The reference-derived template is being revalidated; final full-length CV pagination remains a later content-phase check.
+Current result: **REFERENCE LAYOUT COMPILED AND INSPECTED** using actual GitHub Actions artifacts. Local PDF utilities only render those already compiled artifacts. Full-length personal CV pagination, all content sections and ATS extraction remain later content-phase checks; synthetic one-page output does not prove those.
 
 ## Proof D — One real contact submission through Gmail
 
@@ -147,7 +147,7 @@ Current result: **DELIVERY TRACE PASSED** under the approved dummy-key exception
 | ------------------------------------------------------- | ----------------------------------------------------- | ------------------------------- |
 | Access + Independent MFA on bare address                | 302 plus owner-confirmed MFA and authenticated origin | Core proof passed               |
 | Save → publish → verify live, measured                  | Workflow prepared; owner CI setup pending             | Not run                         |
-| EN/FR/AR TeX Live PDFs, measured and visually inspected | Actions artifact inspected; revised layout pending    | Initial template passed         |
+| EN/FR/AR TeX Live PDFs, measured and visually inspected | Reference layout compiled; rendered pages inspected   | Passed for synthetic CV         |
 | Contact → isolated inbox → Gmail, not spam              | Live API/D1/send plus Gmail confirmation              | Passed with dummy-key exception |
 
 Proceed to foundation/build phases only after these four results are supported by actual evidence and any unacceptable measured latency is resolved with the owner. Until then, report the missing dependency directly rather than substituting mocks or declaring the spike complete.
