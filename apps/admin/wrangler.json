@@ -18,5 +18,11 @@
       "database_id": "00000000-0000-0000-0000-000000000002",
       "migrations_dir": "../../database/migrations/inbox"
     }
-  ]
+  ],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application"
+  }
 }

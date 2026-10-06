@@ -99,6 +99,17 @@ describe('admin uses actual JWT verification without a deployed bypass', () => {
       ),
     );
     const env = {
+      ASSETS: {
+        fetch: vi.fn(
+          async () =>
+            new Response('<main>Protected console</main>', {
+              headers: {
+                'Content-Type': 'text/html',
+                'Cache-Control': 'public, max-age=3600',
+              },
+            }),
+        ),
+      },
       CONTENT: local.content,
       INBOX: local.inbox,
       ACCESS_ISSUER: 'https://test.cloudflareaccess.com',
@@ -119,6 +130,18 @@ describe('admin uses actual JWT verification without a deployed bypass', () => {
         .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
         .sign(keys.privateKey);
     const app = createAdmin();
+    for (const path of ['/', '/assets/index.js', '/settings']) {
+      expect(
+        (
+          await app.request(
+            path,
+            { headers: { 'Sec-Fetch-Mode': 'navigate' } },
+            env,
+          )
+        ).status,
+      ).toBe(401);
+    }
+    expect(env.ASSETS.fetch).not.toHaveBeenCalled();
     expect((await app.request('/api/session', {}, env)).status).toBe(401);
     expect(
       (
@@ -159,6 +182,34 @@ describe('admin uses actual JWT verification without a deployed bypass', () => {
       ).status,
     ).toBe(403);
     const token = await sign();
+    const page = await app.request(
+      '/',
+      {
+        headers: {
+          'Cf-Access-Jwt-Assertion': token,
+          'Sec-Fetch-Mode': 'navigate',
+        },
+      },
+      env,
+    );
+    expect(page.status).toBe(200);
+    expect(page.headers.get('Cache-Control')).toBe('no-store');
+    expect(page.headers.get('Content-Security-Policy')).toContain(
+      "script-src 'self'",
+    );
+    expect(await page.text()).toContain('Protected console');
+    const unknown = await app.request(
+      '/api/unknown',
+      {
+        headers: {
+          'Cf-Access-Jwt-Assertion': token,
+          'Sec-Fetch-Mode': 'navigate',
+        },
+      },
+      env,
+    );
+    expect(unknown.status).toBe(404);
+    expect(unknown.headers.get('content-type')).toContain('application/json');
     expect(
       (
         await app.request(

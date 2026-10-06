@@ -1,4 +1,4 @@
-name: Sprint 0 checks
+name: Platform checks
 on:
   push:
   pull_request:
@@ -28,5 +28,7 @@ jobs:
       - run: pnpm db:local
       - run: pnpm spike:local
       - run: pnpm cv:prepare
+      - run: pnpm build:admin
       - run: pnpm build:site
       - run: pnpm check:static
+      - run: pnpm check:assets

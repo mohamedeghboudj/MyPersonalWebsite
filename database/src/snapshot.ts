@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, asc, desc } from 'drizzle-orm';
+import { eq, asc, desc, and } from 'drizzle-orm';
 import { snapshotSchema, type Locale } from '@platform/schema';
 import {
   profile,
@@ -91,7 +91,7 @@ export async function capturePublishSource(content: D1Database) {
       .from(variantItems)
       .innerJoin(variants, eq(variants.id, variantItems.variantId))
       .innerJoin(education, eq(education.id, variantItems.contentItemId))
-      .where(eq(variants.isPublic, true))
+      .where(and(eq(variants.isPublic, true), eq(variantItems.isVisible, true)))
       .orderBy(asc(variantItems.position), asc(variantItems.contentItemId)),
     db
       .select({ savedAt: audit.createdAt })

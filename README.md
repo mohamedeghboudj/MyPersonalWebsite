@@ -2,7 +2,7 @@
 
 Personal platform for **MOHAMED CHARAF EDDINE DEGHBOUDJ**: an English, French and Arabic static site, an owner-only content console, and a LaTeX CV engine backed by the same content database.
 
-**Current stage: Sprint 0 risk spike.** Live Access/MFA and Gmail delivery are confirmed. The reference-derived CV layout has compiled and been visually inspected in all three languages. Measured live publication remains pending. This is a diagnostic scaffold, not the finished portfolio or admin UI. Read the [architecture](docs/01-architecture-overview.md), [design](docs/02-design-ui-ux.md), [database](docs/03-database-infrastructure.md), [engineering](docs/04-engineering-qa-review.md), and [security](docs/05-security.md) briefs in order before extending it. The [reference review](docs/06-design-reference-review.md) and [Sprint 0 ledger](docs/07-sprint-0-readiness.md) record decisions and evidence.
+**Current stage: Phase 1 foundation.** Sprint 0's four core proofs passed: Access/MFA, Gmail delivery, trilingual CV compilation and two complete static publishes. The owner accepted the repeat's **4m12s capture-to-live** latency, including a four-second runner queue, and authorized foundation work. Revision 2 and all three public PDFs are independently verified. See the [publish evidence](docs/10-live-publish-evidence.md). This remains a diagnostic scaffold, not the finished portfolio or admin UI. Read the [architecture](docs/01-architecture-overview.md), [design](docs/02-design-ui-ux.md), [database](docs/03-database-infrastructure.md), [engineering](docs/04-engineering-qa-review.md), and [security](docs/05-security.md) briefs in order before extending it. The [reference review](docs/06-design-reference-review.md) and [Sprint 0 ledger](docs/07-sprint-0-readiness.md) record decisions and evidence.
 
 ## Local development
 
@@ -16,8 +16,10 @@ This workspace also has a verified, ignored Node/Corepack bootstrap under `.tool
 .\scripts\pnpm.cmd db:local
 .\scripts\pnpm.cmd spike:local
 .\scripts\pnpm.cmd cv:prepare
+.\scripts\pnpm.cmd build:admin
 .\scripts\pnpm.cmd build:site
 .\scripts\pnpm.cmd check:static
+.\scripts\pnpm.cmd check:assets
 ```
 
 On other systems, substitute `pnpm` for `.\scripts\pnpm.cmd`. `db:local` always uses local D1 storage. `spike:local` saves explicitly synthetic education content, exports an allowlisted snapshot into ignored `artifacts/`, and records local timing. The static build reads this snapshot and emits `/`, `/fr/`, and `/ar/` with content present in the first HTML response. It has no runtime database binding, client script or session cookie.
@@ -56,4 +58,4 @@ The local suite covers real SQLite/D1 transactions and rollback, append-only aud
 
 The owner-supplied English/French TeX references guide the [shared CV layout](docs/08-cv-reference-review.md). Poppins fonts and their license are bundled and verified; Arabic uses Amiri and real RTL shaping. Reference files and personal contact details stay outside the public repository.
 
-The protected `/spike` diagnostic saves an item and downloads a public snapshot capture for the measured publish workflow. The [publish handoff](docs/09-publish-spike-handoff.md) lists the exact owner-only CI setup and measurement steps. Full content schema, React console, design system, hero, timeline, projects and generated visuals remain gated on the completed risk proofs.
+The protected `/spike` diagnostic saves an item and downloads a public snapshot capture for the measured publish workflow. Sprint 0 is complete and its latency accepted. The [foundation review](docs/11-foundation-review.md) records the expanded schema, React/Vite shell, shared tokens, security policies and isolated environments. The next phase adds the content registry and console CRUD; the finished public design, generated imagery and motion follow the brief's build order.

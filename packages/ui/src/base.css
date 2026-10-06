@@ -1,0 +1,155 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  scrollbar-gutter: stable;
+}
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+h1,
+h2,
+h3,
+p {
+  margin-block: 0;
+}
+h1,
+h2,
+h3 {
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-heading);
+  text-wrap: balance;
+}
+h1 {
+  font-size: var(--text-display);
+  letter-spacing: var(--tracking-heading);
+  overflow-wrap: anywhere;
+}
+h2 {
+  font-size: var(--text-title);
+}
+h3 {
+  font-size: var(--text-lead);
+}
+p {
+  max-inline-size: var(--measure-reading);
+}
+a {
+  color: var(--color-accent);
+  text-underline-offset: var(--space-1);
+}
+a:hover {
+  text-decoration-thickness: var(--focus-width);
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+input,
+select {
+  min-block-size: var(--target-min);
+}
+button {
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-hairline) solid var(--color-ink);
+  border-radius: var(--radius-control);
+  background: var(--color-ink);
+  color: var(--color-surface);
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+input,
+select,
+textarea {
+  max-inline-size: 100%;
+  border: var(--border-hairline) solid var(--color-control);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+textarea {
+  inline-size: 100%;
+}
+:focus-visible {
+  outline: var(--focus-width) solid var(--color-accent);
+  outline-offset: var(--focus-offset);
+}
+img,
+video,
+canvas {
+  display: block;
+  max-inline-size: 100%;
+}
+:lang(ar) {
+  font-family: var(--font-arabic);
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: var(--leading-arabic);
+}
+.container {
+  inline-size: 100%;
+  max-inline-size: var(--measure-wide);
+  margin-inline: auto;
+  padding-inline: var(--space-6);
+}
+.chapter {
+  padding-block: var(--space-16);
+}
+.stack > * + * {
+  margin-block-start: var(--space-6);
+}
+.stack-compact > * + * {
+  margin-block-start: var(--space-3);
+}
+.reading {
+  max-inline-size: var(--measure-reading);
+}
+.muted {
+  color: var(--color-muted);
+}
+.metadata {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+}
+.divider {
+  border-block-start: var(--border-hairline) solid var(--color-line);
+  padding-block-start: var(--space-8);
+}
+.skip-link {
+  position: absolute;
+  inset-inline-start: var(--space-6);
+  inset-block-start: var(--space-4);
+  z-index: 10;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+/* Foundation content is visible at rest. Choreography must preserve this path. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -16,8 +16,10 @@
       "@platform/schema": ["./packages/schema/src/index.ts"],
       "@platform/config": ["./packages/config/src/index.ts"],
       "@platform/database": ["./database/src/index.ts"],
-      "@platform/cv-engine": ["./packages/cv-engine/src/index.ts"]
-    }
+      "@platform/cv-engine": ["./packages/cv-engine/src/index.ts"],
+      "@platform/api-client": ["./packages/api-client/src/index.ts"]
+    },
+    "jsx": "react-jsx"
   },
   "include": [
     "packages/**/*.ts",
@@ -26,7 +28,8 @@
     "worker/**/*.ts",
     "tests/**/*.ts",
     "scripts/**/*.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "apps/admin/**/*.tsx"
   ],
   "exclude": ["node_modules", "dist", ".tools", ".cache"]
 }

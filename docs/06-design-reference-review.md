@@ -121,10 +121,16 @@ Higgsfield is the requested tool for suitable visual assets later. Generated wor
 
 For each section, record the reference patterns chosen, the implementation URL or capture, the comparison with brief 02, and any revision. Include English, French and Arabic; keyboard/focus; reduced motion; and real iPhone/mid-range Android results. Separate automated performance results from real-device evidence. No section is approved merely because its controls exist.
 
-| Section                         | Reference starting points                                                      | Evidence  | Status                                  |
-| ------------------------------- | ------------------------------------------------------------------------------ | --------- | --------------------------------------- |
-| Hero                            | Apple light/dark; ORYZO's single-object composition                            | Not built | Pending Sprint 0 and later build phases |
-| Timeline                        | Integrated Biosciences' counters; Cursor's metadata hierarchy                  | Not built | Pending                                 |
-| Projects                        | Brex's consistent crops; Cursor's evidence frames; ElevenLabs' panel hierarchy | Not built | Pending                                 |
-| Supporting sections and contact | Flat editorial patterns shared across the references                           | Not built | Pending                                 |
-| Admin                           | Shared tokens, clear forms and feedback from briefs 02/04                      | Not built | Pending                                 |
+| Section                         | Reference starting points                                                      | Evidence  | Status                          |
+| ------------------------------- | ------------------------------------------------------------------------------ | --------- | ------------------------------- |
+| Hero                            | Apple light/dark; ORYZO's single-object composition                            | Not built | Public design and motion phases |
+| Timeline                        | Integrated Biosciences' counters; Cursor's metadata hierarchy                  | Not built | Pending                         |
+| Projects                        | Brex's consistent crops; Cursor's evidence frames; ElevenLabs' panel hierarchy | Not built | Pending                         |
+| Supporting sections and contact | Flat editorial patterns shared across the references                           | Not built | Pending                         |
+| Admin                           | Shared tokens, clear forms and feedback from briefs 02/04                      | Not built | Pending                         |
+
+## Foundation comparison — 2026-10-06
+
+The shared token file uses a 4px spacing unit, 24px gutters, a 1280px maximum width and 64px foundation chapter spacing. These apply Cursor's grid and metadata hierarchy, ElevenLabs' content width and the flat editorial separators from Integrated Biosciences. The palette is warm neutral with one blue interaction accent. Text/link contrast passes 4.5:1 on both light surfaces; control borders pass 3:1. No gradient, shadow, blur or animated color is introduced.
+
+Both Astro and the private React shell import the same CSS. Layout uses logical dimensions and margins; Arabic resets tracking and text transformation and receives a separate system-font fallback stack. These system fonts are a foundation baseline; final licensed web fonts and real Arabic typography are reviewed during the public design phase. Content is visible at rest and native scrolling is preserved. The foundation shell does not implement the hero, timeline or projects, and is not approval of their visual quality. Browser, keyboard, reduced-motion, real-device and section-by-section visual reviews remain required on the actual content screens. See [foundation validation](11-foundation-review.md).

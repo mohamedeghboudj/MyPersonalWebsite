@@ -1,0 +1,68 @@
+{
+  "local": {
+    "content": {
+      "name": "content-local",
+      "id": "00000000-0000-0000-0000-000000000001"
+    },
+    "inbox": {
+      "name": "inbox-local",
+      "id": "00000000-0000-0000-0000-000000000002"
+    },
+    "admin": {
+      "name": "mohamedeghboudj-admin-local",
+      "origin": "http://localhost:8787"
+    },
+    "contact": {
+      "name": "mohamedeghboudj-contact-local",
+      "origin": "http://localhost:8788"
+    },
+    "site": {
+      "name": "mohamedeghboudj-site-local",
+      "origin": "http://localhost:4321"
+    }
+  },
+  "preview": {
+    "content": {
+      "name": "mohamedeghboudj-content-preview",
+      "id": "00000000-0000-0000-0000-000000000003"
+    },
+    "inbox": {
+      "name": "mohamedeghboudj-inbox-preview",
+      "id": "00000000-0000-0000-0000-000000000004"
+    },
+    "admin": {
+      "name": "mohamedeghboudj-admin-preview",
+      "origin": "https://admin-preview.your-domain.example"
+    },
+    "contact": {
+      "name": "mohamedeghboudj-contact-preview",
+      "origin": "https://contact-preview.your-domain.example"
+    },
+    "site": {
+      "name": "mohamedeghboudj-site-preview",
+      "origin": "https://site-preview.your-domain.example"
+    }
+  },
+  "production": {
+    "content": {
+      "name": "mohamedeghboudj-content-production",
+      "id": "00000000-0000-0000-0000-000000000005"
+    },
+    "inbox": {
+      "name": "mohamedeghboudj-inbox-production",
+      "id": "00000000-0000-0000-0000-000000000006"
+    },
+    "admin": {
+      "name": "mohamedeghboudj-admin",
+      "origin": "https://admin.your-domain.example"
+    },
+    "contact": {
+      "name": "mohamedeghboudj-contact",
+      "origin": "https://contact.your-domain.example"
+    },
+    "site": {
+      "name": "mohamedeghboudj-site",
+      "origin": "https://your-domain.example"
+    }
+  }
+}
