@@ -2,6 +2,9 @@
   "name": "@platform/site",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "@platform/ui": "workspace:*"
+  },
   "scripts": {
     "build": "astro build",
     "dev": "astro dev"

@@ -6,6 +6,9 @@ import {
   index,
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+import { contentKinds } from '@platform/schema';
+import { media } from './media.ts';
 
 export const state = sqliteTable('platform_state', {
   id: integer('id').primaryKey(),
@@ -13,11 +16,19 @@ export const state = sqliteTable('platform_state', {
 });
 export const identities = sqliteTable('content_items', {
   id: integer('id').primaryKey(),
-  kind: text('kind', { enum: ['education'] }).notNull(),
+  kind: text('kind', { enum: contentKinds }).notNull(),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(datetime('now'))`),
 });
 export const profile = sqliteTable('profile', {
   id: integer('id').primaryKey(),
   fullName: text('full_name').notNull(),
+  portraitMediaId: integer('portrait_media_id').references(() => media.id, {
+    onDelete: 'set null',
+  }),
+  city: text('city'),
+  country: text('country'),
 });
 export const profileTranslations = sqliteTable(
   'profile_translations',
@@ -27,6 +38,7 @@ export const profileTranslations = sqliteTable(
       .references(() => profile.id, { onDelete: 'cascade' }),
     locale: text('locale', { enum: ['en', 'fr', 'ar'] }).notNull(),
     headline: text('headline').notNull(),
+    bio: text('bio').notNull().default(''),
   },
   (table) => [
     primaryKey({ columns: [table.profileId, table.locale] }),
@@ -42,6 +54,11 @@ export const education = sqliteTable(
     startDate: text('start_date').notNull(),
     endDate: text('end_date'),
     schoolUrl: text('school_url'),
+    logoMediaId: integer('logo_media_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    city: text('city'),
+    country: text('country'),
     displayOrder: integer('display_order').notNull().default(0),
     isVisible: integer('is_visible', { mode: 'boolean' })
       .notNull()
@@ -61,6 +78,8 @@ export const educationTranslations = sqliteTable(
     school: text('school').notNull(),
     degree: text('degree').notNull(),
     description: text('description').notNull(),
+    field: text('field').notNull().default(''),
+    status: text('status').notNull().default(''),
   },
   (table) => [
     primaryKey({ columns: [table.educationId, table.locale] }),
@@ -71,6 +90,7 @@ export const variants = sqliteTable('cv_variants', {
   id: integer('id').primaryKey(),
   slug: text('slug').notNull().unique(),
   isPublic: integer('is_public', { mode: 'boolean' }).notNull().default(false),
+  template: text('template').notNull().default('reference-2'),
 });
 export const variantTranslations = sqliteTable(
   'cv_variant_translations',
@@ -99,6 +119,10 @@ export const variantItems = sqliteTable(
       .notNull()
       .references(() => identities.id, { onDelete: 'cascade' }),
     position: integer('position').notNull(),
+    section: text('section').notNull().default('education'),
+    isVisible: integer('is_visible', { mode: 'boolean' })
+      .notNull()
+      .default(true),
   },
   (table) => [
     primaryKey({ columns: [table.variantId, table.contentItemId] }),
@@ -113,6 +137,7 @@ export const audit = sqliteTable(
     action: text('action').notNull(),
     entity: text('entity').notNull(),
     createdAt: text('created_at').notNull(),
+    changeReference: text('change_reference'),
   },
   (table) => [index('audit_entity_time').on(table.entity, table.createdAt)],
 );
@@ -123,6 +148,9 @@ export const messages = sqliteTable(
     name: text('name').notNull(),
     email: text('email').notNull(),
     message: text('message').notNull(),
+    subject: text('subject').notNull().default(''),
+    starred: integer('starred', { mode: 'boolean' }).notNull().default(false),
+    privateNote: text('private_note').notNull().default(''),
     idempotencyKey: text('idempotency_key').notNull(),
     requestHash: text('request_hash').notNull(),
     visitorHash: text('visitor_hash').notNull(),
@@ -146,4 +174,33 @@ export const rateLimits = sqliteTable(
     expiresAt: integer('expires_at').notNull(),
   },
   (table) => [index('rate_expiry').on(table.expiresAt)],
+);
+
+export const threads = sqliteTable(
+  'threads',
+  {
+    id: text('id').primaryKey(),
+    contactMessageId: text('contact_message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+  },
+  (table) => [index('threads_contact').on(table.contactMessageId)],
+);
+export const outbox = sqliteTable(
+  'outbox',
+  {
+    id: text('id').primaryKey(),
+    threadId: text('thread_id').references(() => threads.id, {
+      onDelete: 'cascade',
+    }),
+    recipient: text('recipient').notNull(),
+    subject: text('subject').notNull(),
+    body: text('body').notNull(),
+    status: text('status').notNull().default('pending'),
+    sentAt: integer('sent_at'),
+  },
+  (table) => [
+    index('outbox_thread').on(table.threadId),
+    index('outbox_status').on(table.status),
+  ],
 );

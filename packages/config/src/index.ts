@@ -3,19 +3,46 @@ import { z } from 'zod';
 const origin = z
   .url()
   .refine(
-    (value) => new URL(value).origin === value,
+    (value) =>
+      new URL(value).origin === value &&
+      (new URL(value).protocol === 'https:' ||
+        (new URL(value).protocol === 'http:' &&
+          ['localhost', '127.0.0.1'].includes(new URL(value).hostname))),
     'Expected an origin without a path',
   );
-export const adminEnvSchema = z.object({
-  ACCESS_ISSUER: z
-    .url()
-    .refine((value) =>
-      /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/u.test(value),
-    ),
-  ACCESS_AUDIENCE: z.string().min(16),
-  OWNER_EMAIL: z.email(),
-  ADMIN_ORIGIN: origin,
-});
+export const adminEnvSchema = z
+  .object({
+    APP_ENV: z
+      .enum(['local', 'spike', 'preview', 'production'])
+      .default('spike'),
+    ACCESS_ISSUER: z
+      .url()
+      .refine((value) =>
+        /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/u.test(value),
+      ),
+    ACCESS_AUDIENCE: z.string().min(16),
+    OWNER_EMAIL: z.email(),
+    ADMIN_ORIGIN: origin,
+    PUBLIC_ORIGIN: origin.optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.ADMIN_ORIGIN === value.PUBLIC_ORIGIN)
+      context.addIssue({
+        code: 'custom',
+        message: 'Admin and public origins must differ',
+      });
+    if (
+      ['preview', 'production'].includes(value.APP_ENV) &&
+      (!value.PUBLIC_ORIGIN ||
+        !value.ADMIN_ORIGIN.startsWith('https://') ||
+        !value.PUBLIC_ORIGIN.startsWith('https://'))
+    )
+      context.addIssue({
+        code: 'custom',
+        message:
+          'Remote environments require separate HTTPS admin/public origins',
+      });
+  });
 // Cloudflare publishes these credentials for integration tests. They are public,
 // not deployment secrets, and are accepted only in an explicitly isolated spike.
 export const dummyTurnstile = {
@@ -27,6 +54,9 @@ export const dummyTurnstile = {
 } as const;
 export const contactEnvSchema = z
   .object({
+    APP_ENV: z
+      .enum(['local', 'spike', 'preview', 'production'])
+      .default('spike'),
     PUBLIC_ORIGIN: origin,
     TURNSTILE_HOSTNAME: z
       .string()
@@ -39,6 +69,15 @@ export const contactEnvSchema = z
     NOTIFICATION_TO: z.email(),
   })
   .superRefine((value, context) => {
+    if (
+      ['preview', 'production'].includes(value.APP_ENV) &&
+      (value.TURNSTILE_MODE !== 'production' ||
+        !value.PUBLIC_ORIGIN.startsWith('https://'))
+    )
+      context.addIssue({
+        code: 'custom',
+        message: 'Remote environments require real Turnstile and HTTPS',
+      });
     const dummy = /^[123]x0+AA$/u.test(value.TURNSTILE_SECRET);
     if (value.TURNSTILE_MODE === 'production' && dummy)
       context.addIssue({
@@ -67,15 +106,12 @@ export const contactPolicy = {
   retentionDays: 365,
   turnstileAction: 'contact',
 } as const;
-export const securityHeaders = {
-  'Content-Security-Policy':
-    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
-  'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'no-referrer',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-  'Cache-Control': 'no-store',
-} as const;
+export {
+  securityHeaders,
+  adminDocumentHeaders,
+  publicDocumentHeaders,
+  renderPublicHeaders,
+} from './headers.ts';
 
 // Enforce a cap even when Content-Length is absent or dishonest.
 export async function boundedJson(

@@ -19,11 +19,15 @@
     "spike:local": "node scripts/local-spike.ts",
     "cv:prepare": "node scripts/prepare-cv.ts",
     "cv:compile": "node scripts/compile-cv.ts",
-    "build:site": "pnpm --filter @platform/site build",
+    "build:site": "pnpm headers:write && pnpm --filter @platform/site build",
     "check:static": "node scripts/check-static.ts",
-    "dev:admin": "wrangler dev --local --config apps/admin/wrangler.json --persist-to .wrangler/state --port 8787",
+    "check:assets": "node scripts/check-built-assets.ts",
+    "env:configure": "node scripts/configure-environments.ts",
+    "dev:admin": "pnpm build:admin && wrangler dev --local --config apps/admin/wrangler.json --persist-to .wrangler/state --port 8787",
     "dev:contact": "wrangler dev --local --config worker/contact/wrangler.json --persist-to .wrangler/state --port 8788",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
+    "build:admin": "pnpm --filter @platform/admin build",
+    "headers:write": "node scripts/write-headers.ts"
   },
   "dependencies": {
     "@platform/config": "workspace:*",

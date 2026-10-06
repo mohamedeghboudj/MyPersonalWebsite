@@ -1,0 +1,47 @@
+/* One token source for the static site and owner console. */
+:root {
+  color-scheme: light;
+  --color-canvas: #faf9f6;
+  --color-surface: #ffffff;
+  --color-ink: #171717;
+  --color-muted: #595959;
+  --color-line: #d6d4ce;
+  --color-control: #747474;
+  --color-accent: #1454ad;
+  --color-on-accent: #ffffff;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+  --font-body:
+    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-arabic: 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  --text-caption: 0.875rem;
+  --text-body: 1rem;
+  --text-lead: 1.25rem;
+  --text-title: clamp(2rem, 4vw, 3rem);
+  --text-display: clamp(2.5rem, 6vw, 5rem);
+  --leading-body: 1.6;
+  --leading-heading: 1.12;
+  --leading-arabic: 1.8;
+  --tracking-heading: -0.025em;
+  --weight-regular: 400;
+  --weight-medium: 600;
+  --measure-wide: 80rem;
+  --measure-reading: 65ch;
+  --target-min: 2.75rem;
+  --radius-control: 0.25rem;
+  --border-hairline: 1px;
+  --focus-width: 2px;
+  --focus-offset: 4px;
+  --motion-fast: 160ms;
+  --motion-section: 480ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}

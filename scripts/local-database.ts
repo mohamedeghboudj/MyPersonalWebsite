@@ -33,10 +33,21 @@ export async function migrateTestDatabase(
   for (const name of (await readdir('database/migrations/content'))
     .filter((name) => name.endsWith('.sql'))
     .sort())
-    await content.exec(
-      await readFile(`database/migrations/content/${name}`, 'utf8'),
-    );
-  await inbox.exec(
-    await readFile('database/migrations/inbox/0001_spike.sql', 'utf8'),
+    await applyTestMigration(content, `database/migrations/content/${name}`);
+  for (const name of (await readdir('database/migrations/inbox'))
+    .filter((name) => name.endsWith('.sql'))
+    .sort())
+    await applyTestMigration(inbox, `database/migrations/inbox/${name}`);
+}
+
+// Checked-in migrations use one complete statement per line, including triggers.
+// batch mirrors Wrangler's per-migration transaction, including DDL rollback.
+export async function applyTestMigration(database: D1Database, path: string) {
+  const statements = (await readFile(path, 'utf8'))
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('--'));
+  await database.batch(
+    statements.map((statement) => database.prepare(statement)),
   );
 }

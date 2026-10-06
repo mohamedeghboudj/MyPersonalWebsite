@@ -1,8 +1,19 @@
 import { z } from 'zod';
 
-export const localeSchema = z.enum(['en', 'fr', 'ar']);
-export const locales = localeSchema.options;
+export const locales = ['en', 'fr', 'ar'] as const;
+export const localeSchema = z.enum(locales);
 export type Locale = z.infer<typeof localeSchema>;
+export const contentKinds = [
+  'education',
+  'experience',
+  'achievement',
+  'certificate',
+  'initiative',
+  'skill',
+  'project',
+  'language',
+] as const;
+export const contentKindSchema = z.enum(contentKinds);
 const plain = (max: number) =>
   z
     .string()
