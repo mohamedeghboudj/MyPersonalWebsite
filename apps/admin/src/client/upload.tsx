@@ -48,6 +48,7 @@ export function Upload({
           void fetch(client.api.media.$url(), {
             method: 'POST',
             body: data,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin',
             redirect: 'error',
           })

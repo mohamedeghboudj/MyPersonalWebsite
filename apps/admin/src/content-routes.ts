@@ -81,7 +81,11 @@ export function createContentRoutes(freshLogin = hasFreshLogin) {
             );
         } catch {
           return c.json(
-            { error: 'Could not verify your recent login. Try again.' },
+            {
+              error:
+                'Access could not verify your recent login. Your content is unchanged. Sign in again, then retry. If it still fails, try again shortly.',
+              reauthenticate: '/cdn-cgi/access/logout',
+            },
             503,
           );
         }

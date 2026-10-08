@@ -24,6 +24,36 @@ type Event = {
   createdAt: string;
   fields: string[];
 };
+function SessionActions() {
+  return (
+    <div className="stack-compact">
+      <p>
+        Keep this tab open to preserve your draft. Deleting content and changing
+        site settings requires a login from the last five minutes.
+      </p>
+      <ol className="session-steps">
+        <li>
+          <a
+            href="/cdn-cgi/access/logout"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Sign out of Access
+          </a>{' '}
+          in another tab. This signs you out of your other Access apps too.
+        </li>
+        <li>
+          Wait 30 seconds, then{' '}
+          <a href="/" target="_blank" rel="noopener noreferrer">
+            open sign-in
+          </a>{' '}
+          in another tab and complete the Access prompts.
+        </li>
+        <li>Return here and retry your change.</li>
+      </ol>
+    </div>
+  );
+}
 function Coverage({ locales }: { locales: string[] }) {
   return (
     <span
@@ -170,7 +200,10 @@ export function Console() {
           )
         : {},
     );
-    setReauth(error instanceof ApiError && [401, 428].includes(error.status));
+    setReauth(
+      error instanceof ApiError &&
+        (error.reauthenticate || [401, 428].includes(error.status)),
+    );
   }
   useEffect(() => {
     void Promise.all([
@@ -352,7 +385,15 @@ export function Console() {
         >
           mohamedeghboudj
         </a>
-        <span className="metadata muted">Private workspace</span>
+        <div className="toolbar">
+          <span className="metadata muted">Private workspace</span>
+          <details className="session-menu">
+            <summary>Session</summary>
+            <div className="session-actions">
+              <SessionActions />
+            </div>
+          </details>
+        </div>
       </header>
       <div className="console-layout">
         <aside className="console-nav">
@@ -423,22 +464,7 @@ export function Console() {
                   ))}
                 </ul>
               )}
-              {reauth && (
-                <p>
-                  <a
-                    href="/cdn-cgi/access/logout"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Sign out through Access in another tab
-                  </a>
-                  , then{' '}
-                  <a href="/" target="_blank" rel="noopener noreferrer">
-                    sign in again
-                  </a>{' '}
-                  and retry here. Keep this tab open to preserve your draft.
-                </p>
-              )}
+              {reauth && <SessionActions />}
               {!draft && (
                 <button
                   type="button"

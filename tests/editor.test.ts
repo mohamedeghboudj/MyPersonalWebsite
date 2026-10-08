@@ -540,16 +540,18 @@ describe('owner API and fresh authentication', () => {
         throw new Error('Offline');
       }),
     );
-    expect(
-      (
-        await admin.request(
-          request('/api/content/education/1', 'DELETE', {
-            revision: await current(),
-          }),
-          undefined,
-          env(),
-        )
-      ).status,
-    ).toBe(503);
+    const before = await editorOverview(local.content);
+    const failed = await admin.request(
+      request('/api/content/education/1', 'DELETE', {
+        revision: before.revision,
+      }),
+      undefined,
+      env(),
+    );
+    expect(failed.status).toBe(503);
+    expect(await failed.json()).toMatchObject({
+      reauthenticate: '/cdn-cgi/access/logout',
+    });
+    expect(await editorOverview(local.content)).toEqual(before);
   });
 });

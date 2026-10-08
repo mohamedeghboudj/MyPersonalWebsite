@@ -6,6 +6,7 @@ export class ApiError extends Error {
     message: string,
     readonly status: number,
     readonly issues: { path: string; message: string }[] = [],
+    readonly reauthenticate = false,
   ) {
     super(message);
   }
@@ -24,8 +25,16 @@ export async function checked<
       ? 'Your session expired. Sign in again in another tab, then retry.'
       : 'The request failed. Your draft is still here; retry when the connection returns.';
   const issues: { path: string; message: string }[] = [];
+  let reauthenticate = response.status === 401 || response.redirected;
   try {
     const body: unknown = await response.json();
+    if (
+      body &&
+      typeof body === 'object' &&
+      'reauthenticate' in body &&
+      body.reauthenticate === '/cdn-cgi/access/logout'
+    )
+      reauthenticate = true;
     if (
       body &&
       typeof body === 'object' &&
@@ -53,7 +62,7 @@ export async function checked<
   } catch {
     /* A provider error page contains no application data. */
   }
-  throw new ApiError(message, response.status, issues);
+  throw new ApiError(message, response.status, issues, reauthenticate);
 }
 export const errorMessage = (error: unknown) =>
   error instanceof Error

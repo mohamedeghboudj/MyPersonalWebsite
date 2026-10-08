@@ -171,3 +171,78 @@ test('validates on the server and keeps hostile text inert in preview', async ({
   );
   await expect(page.locator('.content-preview img')).toHaveCount(0);
 });
+
+test('keeps the draft and exposes session recovery after a verification failure', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByText('Session', { exact: true }).click();
+  const session = page.locator('.session-menu');
+  await expect(
+    session.getByRole('link', { name: 'Sign out of Access' }),
+  ).toHaveAttribute('href', '/cdn-cgi/access/logout');
+  await expect(
+    session.getByRole('link', { name: 'open sign-in' }),
+  ).toHaveAttribute('target', '_blank');
+  await page.setViewportSize({ width: 390, height: 844 });
+  const panel = await page.locator('.session-actions').boundingBox();
+  expect(panel).not.toBeNull();
+  expect(panel!.x).toBeGreaterThanOrEqual(0);
+  expect(panel!.x + panel!.width).toBeLessThanOrEqual(390);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({
+    path: 'artifacts/console-session-mobile.png',
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByText('Session', { exact: true }).click();
+  await page.getByRole('button', { name: 'Technologies', exact: true }).click();
+  await page.getByRole('button', { name: 'Add item' }).click();
+  await page
+    .getByLabel('Name *', { exact: true })
+    .fill('Session recovery test');
+  await page
+    .getByLabel('Slug *', { exact: true })
+    .fill('session-recovery-test');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Saved privately' }),
+  ).toBeVisible();
+  await page
+    .getByLabel('Name *', { exact: true })
+    .fill('Unsaved draft stays here');
+  let authenticationHeader: string | undefined;
+  await page.route('**/api/content/technologies/*', async (route) => {
+    if (route.request().method() !== 'DELETE') return route.continue();
+    authenticationHeader = route.request().headers()['x-requested-with'];
+    await route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error: 'Access could not verify your recent login.',
+        reauthenticate: '/cdn-cgi/access/logout',
+      }),
+    });
+  });
+  await page.getByRole('button', { name: 'Delete item', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm delete' }).click();
+  const alert = page.getByRole('alert');
+  await expect(alert).toContainText(
+    'Access could not verify your recent login',
+  );
+  await expect(
+    alert.getByRole('link', { name: 'Sign out of Access' }),
+  ).toBeVisible();
+  await expect(
+    alert.getByRole('link', { name: 'open sign-in' }),
+  ).toHaveAttribute('target', '_blank');
+  await expect(page.getByLabel('Name *', { exact: true })).toHaveValue(
+    'Unsaved draft stays here',
+  );
+  expect(authenticationHeader).toBe('XMLHttpRequest');
+  await page.unroute('**/api/content/technologies/*');
+  await page.getByRole('button', { name: 'Confirm delete' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Item deleted' }),
+  ).toBeVisible();
+});
