@@ -17,20 +17,27 @@ import {
   messages,
   audit,
 } from '@platform/database';
-import { verifyAccess, type VerifyAccess } from './auth';
-import { spikePage, spikeScript } from './spike';
+import { verifyAccess, type VerifyAccess } from './auth.ts';
+import { spikePage, spikeScript } from './spike.ts';
+import { createContentRoutes } from './content-routes.ts';
+import { hasFreshLogin } from './fresh-auth.ts';
+import { mediaRoutes } from './media-routes.ts';
 
 type Bindings = {
   ASSETS?: Fetcher;
   CONTENT: D1Database;
   INBOX: D1Database;
+  MEDIA?: R2Bucket;
   ACCESS_ISSUER: string;
   ACCESS_AUDIENCE: string;
   OWNER_EMAIL: string;
   ADMIN_ORIGIN: string;
 };
-export function createAdmin(verify: VerifyAccess = verifyAccess) {
-  const app = new Hono<{ Bindings: Bindings; Variables: { actor: string } }>();
+export function createAdmin(
+  verify: VerifyAccess = verifyAccess,
+  freshLogin = hasFreshLogin,
+) {
+  const app = new Hono<AdminEnvironment>();
   app.use('*', async (c, next) => {
     for (const [key, value] of Object.entries(securityHeaders))
       c.header(key, value);
@@ -60,6 +67,25 @@ export function createAdmin(verify: VerifyAccess = verifyAccess) {
       c.req.header('Origin') !== config.data.ADMIN_ORIGIN
     )
       return c.json({ error: 'Origin rejected' }, 403);
+    await next();
+  });
+  // The synthetic spike cannot overwrite fields introduced by the real editor.
+  app.use('*', async (c, next) => {
+    const spikePaths = [
+      '/spike',
+      '/spike.js',
+      '/api/profile',
+      '/api/publish/capture',
+    ];
+    if (
+      adminEnvSchema.parse(c.env).APP_ENV !== 'spike' &&
+      (spikePaths.includes(c.req.path) ||
+        c.req.path.startsWith('/api/education/'))
+    )
+      return c.json(
+        { error: 'This diagnostic is available only in the isolated spike.' },
+        404,
+      );
     await next();
   });
   const routes = app
@@ -159,6 +185,8 @@ export function createAdmin(verify: VerifyAccess = verifyAccess) {
         });
       return c.json({ saved: true });
     })
+    .route('/api/media', mediaRoutes)
+    .route('/api/content', createContentRoutes(freshLogin))
     .get('*', async (c) => {
       if (c.req.path.startsWith('/api/'))
         return c.json({ error: 'Not found' }, 404);
@@ -188,4 +216,8 @@ export function createAdmin(verify: VerifyAccess = verifyAccess) {
   return routes;
 }
 export type AdminApi = ReturnType<typeof createAdmin>;
+export type AdminEnvironment = {
+  Bindings: Bindings;
+  Variables: { actor: string };
+};
 export default createAdmin();

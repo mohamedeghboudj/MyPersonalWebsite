@@ -19,6 +19,7 @@
       "migrations_dir": "../../database/migrations/inbox"
     }
   ],
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "media-local" }],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

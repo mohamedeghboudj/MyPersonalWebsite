@@ -21,6 +21,7 @@ const environment = z
   .object({
     content: database,
     inbox: database,
+    mediaBucket: identifier.min(3).optional(),
     admin: z.object({ name: identifier, origin }),
     contact: z.object({ name: identifier, origin }),
     site: z.object({ name: identifier, origin }),
@@ -43,6 +44,7 @@ export const deploymentSetSchema = z
         env.contact.name,
         env.site.name,
       );
+      if (env.mediaBucket) names.push(env.mediaBucket);
       origins.push(env.admin.origin, env.contact.origin, env.site.origin);
       for (const app of [env.admin, env.contact, env.site]) {
         const url = new URL(app.origin);
@@ -108,6 +110,9 @@ export function createWranglerConfigs(
         PUBLIC_ORIGIN: env.site.origin,
       },
       d1_databases: [d1('CONTENT', env.content), d1('INBOX', env.inbox)],
+      ...(env.mediaBucket
+        ? { r2_buckets: [{ binding: 'MEDIA', bucket_name: env.mediaBucket }] }
+        : {}),
     },
     contact: {
       ...common,
