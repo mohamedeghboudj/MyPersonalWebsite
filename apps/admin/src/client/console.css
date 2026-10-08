@@ -27,7 +27,7 @@
   inset-block-start: 100%;
   inset-inline-end: 0;
   z-index: 2;
-  inline-size: min(26rem, calc(100vw - 3rem));
+  inline-size: min(var(--measure-popover), calc(100vw - var(--space-12)));
   padding: var(--space-6);
   background: var(--color-surface);
   border: var(--border-hairline) solid var(--color-line);
