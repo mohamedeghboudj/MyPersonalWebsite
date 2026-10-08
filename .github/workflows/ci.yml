@@ -29,6 +29,8 @@ jobs:
       - run: pnpm spike:local
       - run: pnpm cv:prepare
       - run: pnpm build:admin
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:browser
       - run: pnpm build:site
       - run: pnpm check:static
       - run: pnpm check:assets

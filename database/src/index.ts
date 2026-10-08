@@ -4,3 +4,5 @@ export * from './foundation-tables.ts';
 export * from './content-details.ts';
 export * from './content.ts';
 export * from './snapshot.ts';
+export * from './editor.ts';
+export * from './media-editor.ts';

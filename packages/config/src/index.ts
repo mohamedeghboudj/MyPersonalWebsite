@@ -127,6 +127,16 @@ export async function boundedJson(
       .endsWith('/json')
   )
     throw new Error('content-type');
+  return JSON.parse(
+    new TextDecoder('utf-8', { fatal: true }).decode(
+      await boundedBytes(request, maxBytes),
+    ),
+  ) as unknown;
+}
+export async function boundedBytes(
+  request: Request,
+  maxBytes: number,
+): Promise<Uint8Array<ArrayBuffer>> {
   if (Number(request.headers.get('content-length')) > maxBytes)
     throw new Error('body-size');
   const reader = request.body?.getReader();
@@ -149,9 +159,7 @@ export async function boundedJson(
     bytes.set(chunk, offset);
     offset += chunk.length;
   }
-  return JSON.parse(
-    new TextDecoder('utf-8', { fatal: true }).decode(bytes),
-  ) as unknown;
+  return bytes;
 }
 
 export async function sha256(value: string): Promise<string> {

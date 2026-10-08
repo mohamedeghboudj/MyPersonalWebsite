@@ -2,7 +2,7 @@
 
 Personal platform for **MOHAMED CHARAF EDDINE DEGHBOUDJ**: an English, French and Arabic static site, an owner-only content console, and a LaTeX CV engine backed by the same content database.
 
-**Current stage: Phase 1 foundation.** Sprint 0's four core proofs passed: Access/MFA, Gmail delivery, trilingual CV compilation and two complete static publishes. The owner accepted the repeat's **4m12s capture-to-live** latency, including a four-second runner queue, and authorized foundation work. Revision 2 and all three public PDFs are independently verified. See the [publish evidence](docs/10-live-publish-evidence.md). This remains a diagnostic scaffold, not the finished portfolio or admin UI. Read the [architecture](docs/01-architecture-overview.md), [design](docs/02-design-ui-ux.md), [database](docs/03-database-infrastructure.md), [engineering](docs/04-engineering-qa-review.md), and [security](docs/05-security.md) briefs in order before extending it. The [reference review](docs/06-design-reference-review.md) and [Sprint 0 ledger](docs/07-sprint-0-readiness.md) record decisions and evidence.
+**Current stage: Phase 2 content console.** Sprint 0's four core proofs passed: Access/MFA, Gmail delivery, trilingual CV compilation and two complete static publishes. The owner accepted the repeat's **4m12s capture-to-live** latency, including a four-second runner queue, and authorized foundation work. Revision 2 and all three public PDFs are independently verified. See the [publish evidence](docs/10-live-publish-evidence.md). The private console now edits the foundation content model; the public portfolio design and expanded publishing path are the next phase. See the [console review and preview instructions](docs/12-content-console-review.md). Read the [architecture](docs/01-architecture-overview.md), [design](docs/02-design-ui-ux.md), [database](docs/03-database-infrastructure.md), [engineering](docs/04-engineering-qa-review.md), and [security](docs/05-security.md) briefs in order before extending it. The [reference review](docs/06-design-reference-review.md) and [Sprint 0 ledger](docs/07-sprint-0-readiness.md) record decisions and evidence.
 
 ## Local development
 
@@ -39,16 +39,22 @@ npx.cmd --no-install wrangler dev --local --config apps/admin/wrangler.json --pe
 
 Copy each Worker's `.dev.vars.example` to its ignored `.dev.vars` only when filling in real local configuration. Deployed secrets go through `wrangler secret put --config <worker-config>`; CI credentials belong in GitHub Actions secrets. Never paste secrets into chat. Missing configuration returns 503. Missing or invalid Access JWTs are rejected; there is no deployable authentication bypass or custom login form.
 
-| Path                          | Purpose                                                         |
-| ----------------------------- | --------------------------------------------------------------- |
-| `GET /api/session`            | Confirm verified owner identity                                 |
-| `PUT /api/education/:id`      | Transactional content/translation/CV-selection save and audit   |
-| `PUT /api/profile`            | Transactional profile save and audit                            |
-| `GET /api/snapshot`           | Explicit public field projection with hash                      |
-| `POST /api/publish/capture`   | Capture snapshot/hash for the owner-dispatched publish workflow |
-| `GET /api/inbox`              | Owner-only inbox JSON                                           |
-| `POST /api/inbox/:id/replied` | Mark message replied and audit                                  |
-| `POST /contact`               | Isolated Turnstile-verified contact ingestion                   |
+| Path                                    | Purpose                                                         |
+| --------------------------------------- | --------------------------------------------------------------- |
+| `GET /api/content/registry`             | Content forms and validation metadata                           |
+| `GET/POST /api/content/:type`           | Paginated content list / create                                 |
+| `GET/PUT/DELETE /api/content/:type/:id` | Read, atomically save or delete with revision check             |
+| `GET /api/content/overview`             | Revision and changed-field audit activity                       |
+| `POST /api/media`                       | Bounded private file upload                                     |
+| `GET /api/media/:id/download`           | Owner-only attachment download                                  |
+| `GET /api/session`                      | Confirm verified owner identity                                 |
+| `PUT /api/education/:id`                | Transactional content/translation/CV-selection save and audit   |
+| `PUT /api/profile`                      | Transactional profile save and audit                            |
+| `GET /api/snapshot`                     | Explicit public field projection with hash                      |
+| `POST /api/publish/capture`             | Capture snapshot/hash for the owner-dispatched publish workflow |
+| `GET /api/inbox`                        | Owner-only inbox JSON                                           |
+| `POST /api/inbox/:id/replied`           | Mark message replied and audit                                  |
+| `POST /contact`                         | Isolated Turnstile-verified contact ingestion                   |
 
 Mutations require the configured origin. The admin verifies Access JWT signature, issuer, audience, expiry and owner email independently of the edge. The contact Worker binds only inbox D1. It bounds and validates input, checks Turnstile hostname/action, enforces atomic visitor/global quotas, deduplicates submissions, stores before notification, and reports failed sends in the inbox. The owner-approved spike uses Cloudflare's dummy response contract; production mode rejects dummy keys. The live fixed-recipient notification reached the owner's Gmail Inbox with correct Reply-To.
 
@@ -58,4 +64,6 @@ The local suite covers real SQLite/D1 transactions and rollback, append-only aud
 
 The owner-supplied English/French TeX references guide the [shared CV layout](docs/08-cv-reference-review.md). Poppins fonts and their license are bundled and verified; Arabic uses Amiri and real RTL shaping. Reference files and personal contact details stay outside the public repository.
 
-The protected `/spike` diagnostic saves an item and downloads a public snapshot capture for the measured publish workflow. Sprint 0 is complete and its latency accepted. The [foundation review](docs/11-foundation-review.md) records the expanded schema, React/Vite shell, shared tokens, security policies and isolated environments. The next phase adds the content registry and console CRUD; the finished public design, generated imagery and motion follow the brief's build order.
+The protected `/spike` diagnostic saves an item and downloads a public snapshot capture for the measured publish workflow. Sprint 0 is complete and its latency accepted. The [foundation review](docs/11-foundation-review.md) records the expanded schema, React/Vite shell, shared tokens, security policies and isolated environments. The [Phase 2 console](docs/12-content-console-review.md) adds editing, language coverage, nested relations, an audit log and private media handling. The finished public design, generated imagery and motion follow the brief's build order. The legacy diagnostic writes are available only in explicit spike mode.
+
+For a disposable console preview, run `.\scripts\pnpm.cmd preview:console` and open `http://127.0.0.1:4173/`. This clearly labeled test harness uses temporary local data only. For browser checks, run `pnpm exec playwright install chromium`, then `pnpm build:admin` and `pnpm test:browser`. The authenticated deployed preview keeps persistent edits in its isolated preview databases.

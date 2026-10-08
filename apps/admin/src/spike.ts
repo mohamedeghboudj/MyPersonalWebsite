@@ -1,4 +1,4 @@
-import { spikeEducation } from '../../../scripts/fixtures';
+import { spikeEducation } from '../../../scripts/fixtures.ts';
 
 const initial = JSON.stringify(spikeEducation, null, 2)
   .replace(/&/gu, '&amp;')

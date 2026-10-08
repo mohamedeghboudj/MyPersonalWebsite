@@ -1,0 +1,10 @@
+CREATE TRIGGER revision_conflict BEFORE UPDATE OF revision ON platform_state WHEN NEW.revision < 0 BEGIN SELECT RAISE(ABORT, 'Editor revision conflict'); END;
+CREATE TABLE audit_changes (id TEXT PRIMARY KEY, before_hash TEXT, after_hash TEXT);
+CREATE TABLE audit_change_fields (change_id TEXT NOT NULL REFERENCES audit_changes(id), field TEXT NOT NULL, PRIMARY KEY(change_id, field));
+CREATE TRIGGER audit_changes_no_update BEFORE UPDATE ON audit_changes BEGIN SELECT RAISE(ABORT, 'Audit changes are append-only'); END;
+CREATE TRIGGER audit_changes_no_delete BEFORE DELETE ON audit_changes BEGIN SELECT RAISE(ABORT, 'Audit changes are append-only'); END;
+CREATE TRIGGER audit_fields_no_update BEFORE UPDATE ON audit_change_fields BEGIN SELECT RAISE(ABORT, 'Audit fields are append-only'); END;
+CREATE TRIGGER audit_fields_no_delete BEFORE DELETE ON audit_change_fields BEGIN SELECT RAISE(ABORT, 'Audit fields are append-only'); END;
+CREATE TABLE media_cleanup (r2_key TEXT PRIMARY KEY, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE TRIGGER media_storage_cap BEFORE INSERT ON media WHEN (SELECT COALESCE(SUM(byte_size),0) FROM media) + NEW.byte_size > 536870912 BEGIN SELECT RAISE(ABORT, 'Media storage budget reached'); END;
+CREATE TRIGGER media_delete_cleanup AFTER DELETE ON media BEGIN INSERT OR IGNORE INTO media_cleanup(r2_key) VALUES(OLD.r2_key); END;
