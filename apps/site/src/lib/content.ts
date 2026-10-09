@@ -128,6 +128,12 @@ export function pageMetadata(
       path === '' ? title : `${title} — ${snapshot.siteSettings.brandName}`,
     description,
     url,
+    socialMediaId:
+      project?.coverMediaId ??
+      category?.coverMediaId ??
+      snapshot.seo.socialMediaId ??
+      snapshot.profile.portraitMediaId,
+    isProject: !!project,
     jsonLd: JSON.stringify({
       '@context': 'https://schema.org',
       '@graph': [identity, entity],

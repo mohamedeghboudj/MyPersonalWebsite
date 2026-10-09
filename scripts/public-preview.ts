@@ -2,10 +2,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import sharp from 'sharp';
+import { drizzle } from 'drizzle-orm/d1';
 import {
   capturePublicSnapshot,
   saveEditor,
   editorOverview,
+  media,
+  mediaTranslations,
 } from '@platform/database';
 import {
   editorRegistry,
@@ -17,8 +21,61 @@ import { localDatabase, migrateTestDatabase } from './local-database.ts';
 // Ephemeral and explicitly synthetic. Never reads the owner's private CV or
 // remote data and never mutates the captured publish artifacts.
 const local = await localDatabase();
+const mediaSourceDirectory = resolve('artifacts/public-preview/media-input');
 try {
   await migrateTestDatabase(local.content, local.inbox);
+  await mkdir(mediaSourceDirectory, { recursive: true });
+  const db = drizzle(local.content);
+  // Code-owned geometry is test data for crop/contrast/layout review, not a
+  // proposed portrait, generated branding or an actual project screenshot.
+  async function previewMedia(
+    id: number,
+    source: Buffer,
+    contentType: 'image/png' | 'application/pdf',
+    labels: [string, string, string],
+  ) {
+    await writeFile(resolve(mediaSourceDirectory, `${id}.bin`), source);
+    await db.insert(media).values({
+      id,
+      r2Key: `synthetic-preview/${id}`,
+      contentType,
+      byteSize: source.length,
+      isPublic: true,
+    });
+    await db.insert(mediaTranslations).values(
+      ['en', 'fr', 'ar'].map((locale, index) => ({
+        mediaId: id,
+        locale: locale as 'en' | 'fr' | 'ar',
+        altText: labels[index]!,
+      })),
+    );
+  }
+  for (const id of [1, 2, 3]) {
+    const source = await sharp(
+      Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900"><rect width="1200" height="900" fill="${id === 2 ? '#1e2927' : '#e5e3db'}"/><rect x="160" y="150" width="880" height="600" fill="${id === 2 ? '#384640' : '#f9f8f4'}"/><path d="M220 240h760M220 660h760M600 240v420" stroke="${id === 2 ? '#a5b3a9' : '#b8b7ac'}" stroke-width="2"/><circle cx="${id === 3 ? 720 : 430}" cy="450" r="120" fill="${id === 2 ? '#a5b3a9' : '#23443a'}"/></svg>`,
+      ),
+    )
+      .png()
+      .toBuffer();
+    await previewMedia(id, source, 'image/png', [
+      'Synthetic geometric image for layout testing',
+      'Image géométrique fictive pour tester la mise en page',
+      'صورة هندسية تجريبية لاختبار التخطيط',
+    ]);
+  }
+  await previewMedia(
+    4,
+    Buffer.from(
+      '%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n',
+    ),
+    'application/pdf',
+    [
+      'Synthetic public document for download testing',
+      'Document public fictif pour tester le téléchargement',
+      'مستند عام تجريبي لاختبار التنزيل',
+    ],
+  );
   async function save(key: string, fields: EditorRecord) {
     const module = editorRegistry.get(key)!;
     return saveEditor(
@@ -37,6 +94,7 @@ try {
   ];
   await save('profile', {
     fullName: 'MOHAMED CHARAF EDDINE DEGHBOUDJ',
+    portraitMediaId: 1,
     city: '',
     country: '',
     translations: translated(
@@ -104,6 +162,7 @@ try {
   ] as const) {
     const result = await save('projectCategories', {
       slug,
+      coverMediaId: position + 1,
       displayOrder: position,
       isVisible: true,
       translations: translated(
@@ -183,6 +242,7 @@ try {
     );
     await save('projects', {
       slug,
+      coverMediaId: (position % 3) + 1,
       startDate: '2026-01-01',
       endDate: null,
       displayOrder: position,
@@ -194,6 +254,17 @@ try {
         ...(position === 1 ? [{ categoryId: categoryIds[0] }] : []),
       ],
       technologies: [{ technologyId: technology.id }],
+      images: [
+        {
+          mediaId: 3,
+          position: 0,
+          translations: translated(
+            { caption: 'Synthetic gallery image — layout study only.' },
+            { caption: 'Image fictive — étude de mise en page uniquement.' },
+            { caption: 'صورة تجريبية لدراسة التخطيط فقط.' },
+          ),
+        },
+      ],
       links: [
         {
           kind: 'repo',
@@ -205,6 +276,7 @@ try {
     });
   }
   await save('education', {
+    logoMediaId: 2,
     startDate: '2022-09-01',
     endDate: null,
     isVisible: true,
@@ -259,6 +331,30 @@ try {
       },
     ),
   });
+  await save('certificates', {
+    publicMediaId: 4,
+    isVisible: true,
+    displayOrder: 0,
+    translations: translated(
+      {
+        title: 'Example certificate',
+        issuer: 'Synthetic issuer',
+        description:
+          'A fixture for checking a deliberately public document download. Not a real credential.',
+      },
+      {
+        title: 'Certificat fictif',
+        issuer: 'Organisme fictif',
+        description:
+          'Exemple pour tester le téléchargement. Il ne s’agit pas d’un diplôme réel.',
+      },
+      {
+        title: 'شهادة تجريبية',
+        issuer: 'جهة تجريبية',
+        description: 'مثال لاختبار تنزيل مستند عام، وليس مؤهلاً حقيقياً.',
+      },
+    ),
+  });
   const path = resolve('artifacts/public-preview/snapshot.json');
   await mkdir(resolve('artifacts/public-preview'), { recursive: true });
   await writeFile(
@@ -284,6 +380,7 @@ const result = spawnSync(
     env: {
       ...process.env,
       SITE_SNAPSHOT_PATH: resolve('artifacts/public-preview/snapshot.json'),
+      SITE_MEDIA_SOURCE_DIR: mediaSourceDirectory,
       SITE_MODE: 'preview',
       SITE_ORIGIN: 'http://127.0.0.1:4321',
     },

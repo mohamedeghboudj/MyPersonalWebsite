@@ -9,6 +9,10 @@ for (const locale of ['en', 'fr', 'ar']) {
     const prefix = locale === 'en' ? '' : `/${locale}`;
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
+    page.on('response', (response) => {
+      if (response.status() >= 400)
+        errors.push(`${response.status()} ${response.url()}`);
+    });
     for (const path of [
       '/',
       '/about/',
@@ -20,6 +24,11 @@ for (const locale of ['en', 'fr', 'ar']) {
       await page.setViewportSize({ width: 1440, height: 1000 });
       const response = await page.goto(`${prefix}${path}`);
       expect(response?.status()).toBe(200);
+      expect(
+        await page
+          .locator('.site-header')
+          .evaluate((element) => getComputedStyle(element).display),
+      ).toBe('flex');
       await expect(page.locator('html')).toHaveAttribute('lang', locale);
       await expect(page.locator('html')).toHaveAttribute(
         'dir',
@@ -29,6 +38,46 @@ for (const locale of ['en', 'fr', 'ar']) {
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
         'href',
         `http://127.0.0.1:4321${prefix}${path}`,
+      );
+      if (path !== '/contact/') {
+        const images = page.locator('picture img');
+        expect(await images.count()).toBeGreaterThan(0);
+        for (const image of await images.all()) {
+          await image.scrollIntoViewIfNeeded();
+          await expect
+            .poll(() =>
+              image.evaluate(
+                (element: HTMLImageElement) =>
+                  element.complete && element.naturalWidth > 0,
+              ),
+            )
+            .toBe(true);
+          await expect(image).toHaveAttribute('lang', locale);
+          await expect(image).toHaveAttribute('alt', /\S/u);
+          expect(
+            await image.evaluate(
+              (element: HTMLImageElement) =>
+                new URL(element.currentSrc).pathname,
+            ),
+          ).toMatch(/^\/media\/[a-f0-9]{64}\.(avif|webp)$/u);
+          expect(Number(await image.getAttribute('width'))).toBeLessThanOrEqual(
+            1600,
+          );
+        }
+      }
+      await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+        'content',
+        /^http:\/\/127\.0\.0\.1:4321\/media\/[a-f0-9]{64}\.jpg$/u,
+      );
+      await expect(
+        page.locator('meta[property="og:image:alt"]'),
+      ).toHaveAttribute(
+        'content',
+        {
+          en: 'Synthetic geometric image for layout testing',
+          fr: 'Image géométrique fictive pour tester la mise en page',
+          ar: 'صورة هندسية تجريبية لاختبار التخطيط',
+        }[locale]!,
       );
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
       expect(
@@ -63,6 +112,21 @@ for (const locale of ['en', 'fr', 'ar']) {
     await expect(page.locator('main')).toBeFocused();
     expect(await context.cookies()).toEqual([]);
     expect(errors).toEqual([]);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto(`${prefix}/`);
+    await expect(page.locator('.hero-main > .media-portrait')).toHaveCount(1);
+    if (locale === 'en')
+      await page.screenshot({
+        path: 'artifacts/public-preview/home-desktop.png',
+        fullPage: true,
+      });
+    if (locale === 'ar') {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.screenshot({
+        path: 'artifacts/public-preview/home-ar-mobile.png',
+        fullPage: true,
+      });
+    }
   });
 }
 
@@ -87,4 +151,29 @@ test('category and language navigation preserve the selected page without JavaSc
     'Atlas ouvert',
   );
   await context.close();
+});
+
+test('public documents download as attachments and only built assets are exposed', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/about/');
+  const link = page.locator('a[download="document.pdf"]');
+  const href = await link.getAttribute('href');
+  expect(href).toMatch(/^\/documents\/[a-f0-9]{64}\.pdf$/u);
+  const response = await request.get(href!);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toBe('application/octet-stream');
+  expect(response.headers()['content-disposition']).toContain('attachment');
+  expect(response.headers()['content-security-policy']).toContain('sandbox');
+  const download = page.waitForEvent('download');
+  await link.click();
+  expect((await download).suggestedFilename()).toBe('document.pdf');
+  for (const path of [
+    '/1.bin',
+    '/manifest.json',
+    '/snapshot.json',
+    '/media-input/1.bin',
+  ])
+    expect((await request.get(path)).status()).toBe(404);
 });

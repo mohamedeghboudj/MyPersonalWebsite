@@ -9,6 +9,8 @@ import {
 } from '../lib/content';
 import PublicLayout from '../layouts/PublicLayout.astro';
 import ProjectCard from './ProjectCard.astro';
+import PublicMedia from './PublicMedia.astro';
+import PublicDocument from './PublicDocument.astro';
 interface Props {
   snapshot: PublicSnapshot;
   locale: Locale;
@@ -84,38 +86,52 @@ const timeline = [
         >
           {settings?.availability || text.home}
         </div>
-        <div class="hero-content">
-          <p class="identity-name">{snapshot.profile.fullName}</p>
-          <h1
-            id="hero-title"
-            lang={profile.locale}
-            dir={direction(profile.locale)}
-          >
-            {profile.headline}
-          </h1>
-          {profile.bio && (
-            <p
-              class="hero-intro"
+        <div
+          class:list={[
+            'hero-main',
+            { 'has-portrait': snapshot.profile.portraitMediaId !== null },
+          ]}
+        >
+          <div class="hero-content">
+            <p class="identity-name">{snapshot.profile.fullName}</p>
+            <h1
+              id="hero-title"
               lang={profile.locale}
               dir={direction(profile.locale)}
             >
-              {profile.bio}
-            </p>
-          )}
-          <div
-            class="hero-actions"
-            lang={copy.locale}
-            dir={direction(copy.locale)}
-          >
-            <a class="button-link" href={routePath(locale, 'projects')}>
-              {text.viewProjects}
-              <span aria-hidden="true">↗</span>
-            </a>
-            <a class="text-link" href={routePath(locale, 'about')}>
-              {text.about}
-              <span aria-hidden="true">→</span>
-            </a>
+              {profile.headline}
+            </h1>
+            {profile.bio && (
+              <p
+                class="hero-intro"
+                lang={profile.locale}
+                dir={direction(profile.locale)}
+              >
+                {profile.bio}
+              </p>
+            )}
+            <div
+              class="hero-actions"
+              lang={copy.locale}
+              dir={direction(copy.locale)}
+            >
+              <a class="button-link" href={routePath(locale, 'projects')}>
+                {text.viewProjects}
+                <span aria-hidden="true">↗</span>
+              </a>
+              <a class="text-link" href={routePath(locale, 'about')}>
+                {text.about}
+                <span aria-hidden="true">→</span>
+              </a>
+            </div>
           </div>
+          <PublicMedia
+            id={snapshot.profile.portraitMediaId}
+            snapshot={snapshot}
+            locale={locale}
+            priority
+            variant="portrait"
+          />
         </div>
         <div class="hero-foot metadata muted">
           <span dir="auto">
@@ -226,6 +242,14 @@ const timeline = [
           );
         })}
       </nav>
+      {category && (
+        <PublicMedia
+          id={category.coverMediaId}
+          snapshot={snapshot}
+          locale={locale}
+          priority
+        />
+      )}
       {listing.length ? (
         <div class="project-grid">
           {listing.map((item) => (
@@ -259,6 +283,12 @@ const timeline = [
         <h1>{projectText.title}</h1>
         <p class="lead">{projectText.summary}</p>
       </header>
+      <PublicMedia
+        id={project.coverMediaId}
+        snapshot={snapshot}
+        locale={locale}
+        priority
+      />
       <dl class="project-facts">
         {projectText.role && (
           <div>
@@ -314,6 +344,33 @@ const timeline = [
           <h2 lang={copy.locale}>{text.outcomes}</h2>
           <p class="preserve-lines">{projectText.outcomes}</p>
         </section>
+      )}
+      {project.images.length > 0 && (
+        <div class="project-gallery">
+          {project.images.map((image) => {
+            const caption = image.translations.length
+              ? resolveTranslation(image.translations, locale)
+              : null;
+            return (
+              <figure>
+                <PublicMedia
+                  id={image.mediaId}
+                  snapshot={snapshot}
+                  locale={locale}
+                />
+                {caption && (
+                  <figcaption
+                    class="muted"
+                    lang={caption.locale}
+                    dir={direction(caption.locale)}
+                  >
+                    {caption.caption}
+                  </figcaption>
+                )}
+              </figure>
+            );
+          })}
+        </div>
       )}
       {project.links.length > 0 && (
         <section class="reading stack section">
@@ -397,6 +454,12 @@ const timeline = [
                   </p>
                 </div>
                 <div class="stack-compact">
+                  <PublicMedia
+                    id={item.logoMediaId}
+                    snapshot={snapshot}
+                    locale={locale}
+                    variant="logo"
+                  />
                   <h3>{item.subtitle}</h3>
                   <p class="lead">{item.title}</p>
                   {item.extra && <p class="muted">{item.extra}</p>}
@@ -446,6 +509,15 @@ const timeline = [
                       <div class="stack-compact">
                         <p class="muted">{t.issuer}</p>
                         <p>{t.description}</p>
+                        <PublicDocument
+                          id={
+                            'publicMediaId' in item
+                              ? item.publicMediaId
+                              : item.mediaId
+                          }
+                          snapshot={snapshot}
+                          locale={locale}
+                        />
                         {item.verificationUrl && (
                           <a
                             href={item.verificationUrl}
@@ -482,6 +554,11 @@ const timeline = [
                     <p>{t.purpose}</p>
                     <p>{t.description}</p>
                     <p>{t.outcomes}</p>
+                    <PublicDocument
+                      id={item.mediaId}
+                      snapshot={snapshot}
+                      locale={locale}
+                    />
                     {item.collaborators.length > 0 && (
                       <ul class="inline-list">
                         {item.collaborators.map((person) => (

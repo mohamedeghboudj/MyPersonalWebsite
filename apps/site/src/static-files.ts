@@ -1,6 +1,14 @@
 import { writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
 import { renderPublicHeaders } from '@platform/config';
+import {
+  prepareStaticMedia,
+  readStaticMedia,
+  stageStaticMedia,
+} from '../../../scripts/static-media';
+import { mediaDirectory } from './lib/media';
 import {
   readSnapshot,
   buildConfig,
@@ -13,10 +21,29 @@ export function staticFiles(): AstroIntegration {
   return {
     name: 'platform-static-files',
     hooks: {
+      'astro:build:start': async () => {
+        const snapshot = await readSnapshot();
+        if (snapshot.schemaVersion === 2)
+          await prepareStaticMedia(
+            snapshot,
+            buildConfig.SITE_MEDIA_SOURCE_DIR ??
+              resolve('../../artifacts/public-media-input'),
+            mediaDirectory(snapshot),
+          );
+      },
       'astro:build:done': async ({ dir }) => {
         const snapshot = await readSnapshot();
         const redirects: string[] = [];
         if (snapshot.schemaVersion === 2) {
+          const manifest = await readStaticMedia(
+            snapshot,
+            mediaDirectory(snapshot),
+          );
+          await stageStaticMedia(
+            manifest,
+            mediaDirectory(snapshot),
+            fileURLToPath(dir),
+          );
           const known = new Set(
             routes(snapshot).map((path) => routePath('en', path)),
           );

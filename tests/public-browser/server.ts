@@ -1,7 +1,10 @@
 import { createServer } from 'node:http';
 import { readdir, readFile } from 'node:fs/promises';
 import { relative, resolve, extname } from 'node:path';
-import { publicDocumentHeaders } from '@platform/config';
+import {
+  publicDocumentHeaders,
+  publicAttachmentHeaders,
+} from '@platform/config';
 
 // Test-only static host. The map consists exclusively of built files, so URLs
 // cannot become filesystem paths or reach private source/configuration files.
@@ -24,9 +27,10 @@ for (const file of await readdir(root, {
   recursive: true,
   withFileTypes: true,
 })) {
-  if (!file.isFile() || file.name.startsWith('_')) continue;
+  if (!file.isFile()) continue;
   const path = resolve(file.parentPath, file.name);
   const url = '/' + relative(root, path).replaceAll('\\', '/');
+  if (['/_headers', '/_redirects'].includes(url)) continue;
   const asset = {
     body: await readFile(path),
     type: mime[extname(path)] ?? 'application/octet-stream',
@@ -52,9 +56,9 @@ const server = createServer((request, response) => {
     response.writeHead(403).end();
     return;
   }
-  const asset = files.get(
-    new URL(request.url ?? '/', 'http://127.0.0.1:4322').pathname,
-  );
+  const pathname = new URL(request.url ?? '/', 'http://127.0.0.1:4322')
+    .pathname;
+  const asset = files.get(pathname);
   if (!asset) {
     response.writeHead(404).end();
     return;
@@ -62,6 +66,7 @@ const server = createServer((request, response) => {
   response.writeHead(200, {
     ...publicDocumentHeaders,
     'Content-Type': asset.type,
+    ...(pathname.startsWith('/documents/') ? publicAttachmentHeaders : {}),
     'Cache-Control': 'no-store',
   });
   response.end(request.method === 'HEAD' ? undefined : asset.body);

@@ -15,6 +15,7 @@ export const siteBuildEnvSchema = z
     SITE_ORIGIN: origin.default('http://127.0.0.1:4321'),
     SITE_MODE: z.enum(['preview', 'production']).default('preview'),
     SITE_SNAPSHOT_PATH: z.string().min(1).optional(),
+    SITE_MEDIA_SOURCE_DIR: z.string().min(1).optional(),
   })
   .superRefine((value, context) => {
     if (
@@ -126,6 +127,7 @@ export {
   securityHeaders,
   adminDocumentHeaders,
   publicDocumentHeaders,
+  publicAttachmentHeaders,
   renderPublicHeaders,
 } from './headers.ts';
 

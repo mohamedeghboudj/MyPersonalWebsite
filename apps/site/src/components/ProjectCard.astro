@@ -1,6 +1,7 @@
 ---
 import type { Locale, PublicSnapshot } from '@platform/schema';
 import { resolveTranslation, direction, routePath } from '../lib/content';
+import PublicMedia from './PublicMedia.astro';
 interface Props {
   project: PublicSnapshot['projects'][number];
   snapshot: PublicSnapshot;
@@ -21,6 +22,12 @@ const categories = snapshot.projectCategories.filter((category) =>
   dir={direction(translated.locale)}
   data-content-id={project.id}
 >
+  <PublicMedia
+    id={project.coverMediaId}
+    snapshot={snapshot}
+    locale={locale}
+    variant="card"
+  />
   <div class="project-card-top">
     <p class="metadata muted">
       {categories

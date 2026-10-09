@@ -1,5 +1,6 @@
 ---
 import type { Locale, PublicSnapshot } from '@platform/schema';
+import { mediaManifest } from '../lib/media';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 import {
   resolveTranslation,
@@ -20,6 +21,17 @@ const { snapshot, locale, path } = Astro.props;
 const copy = resolveTranslation(snapshot.siteCopy, locale);
 const text = copy.values;
 const meta = pageMetadata(snapshot, locale, path);
+const socialImage = meta.socialMediaId
+  ? (await mediaManifest(snapshot)).images[meta.socialMediaId]?.social
+  : null;
+const socialMetadata = snapshot.media.find(
+  (item) => item.id === meta.socialMediaId,
+);
+const socialText = socialMetadata
+  ? resolveTranslation(socialMetadata.translations, locale)
+  : null;
+if (meta.socialMediaId && !socialImage)
+  throw new Error('Social image must be an eligible image');
 const footer = snapshot.siteSettings.translations.length
   ? resolveTranslation(snapshot.siteSettings.translations, locale)
   : null;
@@ -54,14 +66,23 @@ const localPath = (language: Locale, value = '') =>
       hreflang="x-default"
       href={absoluteUrl(localPath('en', path))}
     />
-    <meta
-      property="og:type"
-      content={path.startsWith('projects/') ? 'article' : 'website'}
-    />
+    <meta property="og:type" content={meta.isProject ? 'article' : 'website'} />
     <meta property="og:title" content={meta.title} />
     <meta property="og:description" content={meta.description} />
     <meta property="og:url" content={meta.url} />
     <meta property="og:site_name" content={snapshot.siteSettings.brandName} />
+    {socialImage && socialText && (
+      <>
+        <meta property="og:image" content={absoluteUrl(socialImage.url)} />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:width" content={String(socialImage.width)} />
+        <meta property="og:image:height" content={String(socialImage.height)} />
+        <meta property="og:image:alt" content={socialText.altText} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content={absoluteUrl(socialImage.url)} />
+        <meta name="twitter:image:alt" content={socialText.altText} />
+      </>
+    )}
     <meta
       property="og:locale"
       content={{ en: 'en_US', fr: 'fr_FR', ar: 'ar_DZ' }[locale]}
