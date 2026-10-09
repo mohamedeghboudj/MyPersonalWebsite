@@ -1,0 +1,174 @@
+---
+import type { Locale, PublicSnapshot } from '@platform/schema';
+import { mediaManifest } from '../lib/media';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import {
+  resolveTranslation,
+  direction,
+  pageMetadata,
+  buildConfig,
+  locales,
+  absoluteUrl,
+} from '../lib/content';
+import '@platform/ui/base.css';
+import '../styles/public.css';
+interface Props {
+  snapshot: PublicSnapshot;
+  locale: Locale;
+  path: string;
+}
+const { snapshot, locale, path } = Astro.props;
+const copy = resolveTranslation(snapshot.siteCopy, locale);
+const text = copy.values;
+const meta = pageMetadata(snapshot, locale, path);
+const socialImage = meta.socialMediaId
+  ? (await mediaManifest(snapshot)).images[meta.socialMediaId]?.social
+  : null;
+const socialMetadata = snapshot.media.find(
+  (item) => item.id === meta.socialMediaId,
+);
+const socialText = socialMetadata
+  ? resolveTranslation(socialMetadata.translations, locale)
+  : null;
+if (meta.socialMediaId && !socialImage)
+  throw new Error('Social image must be an eligible image');
+const footer = snapshot.siteSettings.translations.length
+  ? resolveTranslation(snapshot.siteSettings.translations, locale)
+  : null;
+const localPath = (language: Locale, value = '') =>
+  getRelativeLocaleUrl(language, value.replace(/^\/+|\/+$/gu, ''));
+---
+
+<!doctype html>
+<html
+  lang={locale}
+  dir={direction(locale)}
+  data-theme={snapshot.siteSettings.theme}
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {buildConfig.SITE_MODE === 'preview' && (
+      <meta name="robots" content="noindex, nofollow" />
+    )}
+    <title>{meta.title}</title>
+    <meta name="description" content={meta.description} />
+    <link rel="canonical" href={meta.url} />
+    {locales.map((language) => (
+      <link
+        rel="alternate"
+        hreflang={language}
+        href={absoluteUrl(localPath(language, path))}
+      />
+    ))}
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href={absoluteUrl(localPath('en', path))}
+    />
+    <meta property="og:type" content={meta.isProject ? 'article' : 'website'} />
+    <meta property="og:title" content={meta.title} />
+    <meta property="og:description" content={meta.description} />
+    <meta property="og:url" content={meta.url} />
+    <meta property="og:site_name" content={snapshot.siteSettings.brandName} />
+    {socialImage && socialText && (
+      <>
+        <meta property="og:image" content={absoluteUrl(socialImage.url)} />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:width" content={String(socialImage.width)} />
+        <meta property="og:image:height" content={String(socialImage.height)} />
+        <meta property="og:image:alt" content={socialText.altText} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content={absoluteUrl(socialImage.url)} />
+        <meta name="twitter:image:alt" content={socialText.altText} />
+      </>
+    )}
+    <meta
+      property="og:locale"
+      content={{ en: 'en_US', fr: 'fr_FR', ar: 'ar_DZ' }[locale]}
+    />
+    <script is:inline type="application/ld+json" set:html={meta.jsonLd} />
+  </head>
+  <body>
+    <a
+      class="skip-link"
+      href="#main"
+      lang={copy.locale}
+      dir={direction(copy.locale)}
+    >
+      {text.skipLink}
+    </a>
+    <header class="site-header container">
+      <a class="wordmark" href={localPath(locale)} dir="ltr">
+        {snapshot.siteSettings.brandName}
+      </a>
+      <nav aria-label={text.mainNavigation} class="primary-nav">
+        {snapshot.navigation.map((item) => {
+          const label = resolveTranslation(item.translations, locale);
+          const itemPath = item.path.replace(/^\/+|\/+$/gu, '');
+          return (
+            <a
+              href={localPath(locale, itemPath)}
+              aria-current={itemPath === path ? 'page' : undefined}
+              lang={label.locale}
+              dir={direction(label.locale)}
+            >
+              {label.label}
+            </a>
+          );
+        })}
+      </nav>
+      <nav class="locale-nav" aria-label={text.languageNavigation}>
+        {locales.map((language) => (
+          <a
+            href={localPath(language, path)}
+            lang={language}
+            hreflang={language}
+            aria-current={language === locale ? 'true' : undefined}
+          >
+            {language === 'ar' ? 'العربية' : language.toUpperCase()}
+          </a>
+        ))}
+      </nav>
+    </header>
+    <main id="main" tabindex="-1" data-revision={snapshot.revision}>
+      <slot />
+    </main>
+    <footer class="site-footer container">
+      <div class="footer-identity stack-compact">
+        <a href={localPath(locale)} class="wordmark" dir="ltr">
+          {snapshot.siteSettings.brandName}
+        </a>
+        {footer?.footerText && (
+          <p class="muted" lang={footer.locale} dir={direction(footer.locale)}>
+            {footer.footerText}
+          </p>
+        )}
+      </div>
+      <ul class="inline-list">
+        {snapshot.socialLinks.map((link) => {
+          const label = link.translations.length
+            ? resolveTranslation(link.translations, locale)
+            : null;
+          return (
+            <li>
+              <a
+                href={link.url}
+                lang={label?.locale}
+                dir={label ? direction(label.locale) : 'auto'}
+                rel="me noreferrer"
+              >
+                {label?.label ?? link.platform}
+              </a>
+            </li>
+          );
+        })}
+        <li>
+          <a href={localPath(locale, 'contact')} lang={copy.locale}>
+            {text.contact}
+          </a>
+        </li>
+      </ul>
+    </footer>
+  </body>
+</html>

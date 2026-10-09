@@ -1,5 +1,5 @@
 import { readFile, readdir } from 'node:fs/promises';
-import { renderPublicHeaders } from '@platform/config';
+import { renderPublicHeaders, siteBuildEnvSchema } from '@platform/config';
 
 const admin = await readFile('apps/admin/dist/index.html', 'utf8');
 const pages = [
@@ -14,13 +14,17 @@ for (const html of pages) {
   if (/<style\b|\sstyle=|\son[a-z]+=/iu.test(html))
     throw new Error('Inline styles or event handlers violate the document CSP');
   for (const script of html.matchAll(/<script\b([^>]*)>/giu))
-    if (!/\bsrc="\//u.test(script[1] ?? ''))
+    if (
+      !/\bsrc="\//u.test(script[1] ?? '') &&
+      !/\btype="application\/ld\+json"/u.test(script[1] ?? '')
+    )
       throw new Error('Scripts must use same-origin external files');
   if (!/<link\b[^>]*rel="stylesheet"/iu.test(html))
     throw new Error('Shared stylesheet missing');
 }
 if (
-  (await readFile('apps/site/dist/_headers', 'utf8')) !== renderPublicHeaders()
+  (await readFile('apps/site/dist/_headers', 'utf8')) !==
+  renderPublicHeaders(siteBuildEnvSchema.parse(process.env).SITE_MODE)
 )
   throw new Error('Built public security policy is stale');
 const js = (await readdir('apps/admin/dist/assets')).filter((name) =>

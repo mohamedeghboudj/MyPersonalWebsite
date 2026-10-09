@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*", ".astro/types.d.ts"]
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "astro",
+    "types": ["node", "astro/client", "@cloudflare/workers-types"]
+  },
+  "include": ["src/**/*", ".astro/types.d.ts"],
+  "exclude": ["dist", "node_modules"]
 }

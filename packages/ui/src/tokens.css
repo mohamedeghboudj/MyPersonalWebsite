@@ -40,10 +40,23 @@
   --measure-popover: 26rem;
   --target-min: 2.75rem;
   --radius-control: 0.25rem;
+  --ratio-project: 4 / 3;
   --border-hairline: 1px;
   --focus-width: 2px;
   --focus-offset: 4px;
   --motion-fast: 160ms;
   --motion-section: 480ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+/* Theme is published content, never a visitor cookie. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-canvas: #171717;
+  --color-surface: #222222;
+  --color-ink: #faf9f6;
+  --color-muted: #c6c3ba;
+  --color-line: #494842;
+  --color-control: #a5a299;
+  --color-accent: #a8caff;
+  --color-on-accent: #171717;
 }

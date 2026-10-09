@@ -2,7 +2,7 @@
 
 Personal platform for **MOHAMED CHARAF EDDINE DEGHBOUDJ**: an English, French and Arabic static site, an owner-only content console, and a LaTeX CV engine backed by the same content database.
 
-**Current stage: Phase 2 content console.** Sprint 0's four core proofs passed: Access/MFA, Gmail delivery, trilingual CV compilation and two complete static publishes. The owner accepted the repeat's **4m12s capture-to-live** latency, including a four-second runner queue, and authorized foundation work. Revision 2 and all three public PDFs are independently verified. See the [publish evidence](docs/10-live-publish-evidence.md). The private console now edits the foundation content model; the public portfolio design and expanded publishing path are the next phase. See the [console review and preview instructions](docs/12-content-console-review.md). Read the [architecture](docs/01-architecture-overview.md), [design](docs/02-design-ui-ux.md), [database](docs/03-database-infrastructure.md), [engineering](docs/04-engineering-qa-review.md), and [security](docs/05-security.md) briefs in order before extending it. The [reference review](docs/06-design-reference-review.md) and [Sprint 0 ledger](docs/07-sprint-0-readiness.md) record decisions and evidence.
+**Current stage: Phase 3, public snapshot and static presentation.** Sprint 0's four proofs passed; the owner accepted **4m12s capture-to-live** latency. The protected content console and fresh-login deletion recovery are proven live. The public increment adds an explicit v2 snapshot, EN/FR/AR page templates and build-time image derivatives; authenticated media capture and the expanded publishing/CV pipeline are still in progress. See the [public preview and remaining work](docs/13-public-site-progress.md), [console review](docs/12-content-console-review.md) and [publish evidence](docs/10-live-publish-evidence.md). Read the [architecture](docs/01-architecture-overview.md), [design](docs/02-design-ui-ux.md), [database](docs/03-database-infrastructure.md), [engineering](docs/04-engineering-qa-review.md), and [security](docs/05-security.md) briefs in order before extending it. The [reference review](docs/06-design-reference-review.md) and [Sprint 0 ledger](docs/07-sprint-0-readiness.md) record decisions and evidence.
 
 ## Local development
 
@@ -51,6 +51,7 @@ Copy each Worker's `.dev.vars.example` to its ignored `.dev.vars` only when fill
 | `PUT /api/education/:id`                | Transactional content/translation/CV-selection save and audit   |
 | `PUT /api/profile`                      | Transactional profile save and audit                            |
 | `GET /api/snapshot`                     | Explicit public field projection with hash                      |
+| `GET /api/public-snapshot`              | Owner-only expanded v2 public projection with hash              |
 | `POST /api/publish/capture`             | Capture snapshot/hash for the owner-dispatched publish workflow |
 | `GET /api/inbox`                        | Owner-only inbox JSON                                           |
 | `POST /api/inbox/:id/replied`           | Mark message replied and audit                                  |

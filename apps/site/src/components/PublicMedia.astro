@@ -1,0 +1,62 @@
+---
+import type { Locale, PublicSnapshot } from '@platform/schema';
+import { resolveTranslation } from '../lib/content';
+import { mediaManifest } from '../lib/media';
+interface Props {
+  id: number | null;
+  snapshot: PublicSnapshot;
+  locale: Locale;
+  priority?: boolean;
+  variant?: 'card' | 'portrait' | 'full' | 'logo';
+}
+const {
+  id,
+  snapshot,
+  locale,
+  priority = false,
+  variant = 'full',
+} = Astro.props;
+const manifest = id ? await mediaManifest(snapshot) : null;
+const image = id ? manifest?.images[id] : null;
+const metadata = snapshot.media.find((item) => item.id === id);
+if (id && (!image || !metadata))
+  throw new Error(`Image slot ${id} needs an eligible image, not a PDF`);
+const webp =
+  image?.variants
+    .filter((item) => item.format === 'webp')
+    .sort((a, b) => a.width - b.width) ?? [];
+const avif =
+  image?.variants
+    .filter((item) => item.format === 'avif')
+    .sort((a, b) => a.width - b.width) ?? [];
+const fallback = webp[webp.length - 1];
+const alt = metadata ? resolveTranslation(metadata.translations, locale) : null;
+const sizes =
+  variant === 'card' || variant === 'portrait'
+    ? '(min-width: 48rem) 50vw, 100vw'
+    : variant === 'logo'
+      ? '4rem'
+      : '100vw';
+---
+
+{fallback && alt && (
+  <picture class:list={['public-media', `media-${variant}`]}>
+    <source
+      type="image/avif"
+      srcset={avif.map((item) => `${item.url} ${item.width}w`).join(', ')}
+      sizes={sizes}
+    />
+    <img
+      src={fallback.url}
+      srcset={webp.map((item) => `${item.url} ${item.width}w`).join(', ')}
+      sizes={sizes}
+      width={fallback.width}
+      height={fallback.height}
+      alt={alt.altText}
+      lang={alt.locale}
+      loading={priority ? 'eager' : 'lazy'}
+      decoding="async"
+      fetchpriority={priority ? 'high' : 'auto'}
+    />
+  </picture>
+)}
