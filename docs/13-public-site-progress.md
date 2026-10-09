@@ -18,6 +18,8 @@ The build now decodes eligible images with pinned Sharp, applies EXIF orientatio
 
 Deliberately public PDFs are attachment downloads under a sandbox policy. They are not claimed to be sanitized PDFs; only the owner's explicitly public/redacted copy is eligible, and certificate originals remain excluded by snapshot capture. The build input currently comes from a controlled local source directory. Fetching immutable eligible originals from private R2 in the authenticated publishing job is still pending; no public R2 access was enabled.
 
+Final output review found that Astro's automatic public-directory copy could carry previously staged Sprint 0 CVs into the v2 build. The v2 build now uses a separate code-owned static directory and rejects PDFs outside its verified output allowlist. A deliberately stale legacy PDF fixture proves that these files remain unreachable. The v1 build retains its original staging path. V2 public CV downloads stay absent until all three PDFs can be verified against the same v2 snapshot as the site.
+
 ## Preview
 
 From the repository root in this Windows workspace:

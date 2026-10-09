@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { writeFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
@@ -21,6 +21,10 @@ export function staticFiles(): AstroIntegration {
   return {
     name: 'platform-static-files',
     hooks: {
+      'astro:config:setup': async ({ command, config, updateConfig }) => {
+        if (command === 'build' && (await readSnapshot()).schemaVersion === 1)
+          updateConfig({ publicDir: new URL('./public/', config.root) });
+      },
       'astro:build:start': async () => {
         const snapshot = await readSnapshot();
         if (snapshot.schemaVersion === 2)
@@ -44,6 +48,17 @@ export function staticFiles(): AstroIntegration {
             mediaDirectory(snapshot),
             fileURLToPath(dir),
           );
+          // A stale PDF must not ride along through Astro's as-is public-dir
+          // copy. V2 CV files join this allowlist only after hash verification
+          // against this exact snapshot is implemented.
+          const allowedPdfs = new Set(
+            Object.values(manifest.documents).map((file) => file.url.slice(1)),
+          );
+          for (const path of await readdir(dir, { recursive: true })) {
+            const normalized = path.replaceAll('\\', '/');
+            if (/\.pdf$/iu.test(normalized) && !allowedPdfs.has(normalized))
+              throw new Error(`Unverified PDF in public output: ${normalized}`);
+          }
           const known = new Set(
             routes(snapshot).map((path) => routePath('en', path)),
           );

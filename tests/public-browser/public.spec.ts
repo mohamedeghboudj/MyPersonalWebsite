@@ -174,6 +174,10 @@ test('public documents download as attachments and only built assets are exposed
     '/manifest.json',
     '/snapshot.json',
     '/media-input/1.bin',
+    '/cv/en.pdf',
+    '/cv/fr.pdf',
+    '/cv/ar.pdf',
+    '/cv/__stale_snapshot_probe.pdf',
   ])
     expect((await request.get(path)).status()).toBe(404);
 });

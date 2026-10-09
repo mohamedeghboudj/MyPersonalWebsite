@@ -22,6 +22,16 @@ import { localDatabase, migrateTestDatabase } from './local-database.ts';
 // remote data and never mutates the captured publish artifacts.
 const local = await localDatabase();
 const mediaSourceDirectory = resolve('artifacts/public-preview/media-input');
+// Deliberate stale legacy input. The v2 build must never copy this into dist.
+// Exclusive create preserves any existing local fixture.
+await mkdir(resolve('apps/site/public/cv'), { recursive: true });
+await writeFile(
+  resolve('apps/site/public/cv/__stale_snapshot_probe.pdf'),
+  '%PDF-1.4\nSTALE-SNAPSHOT-PROBE',
+  { flag: 'wx' },
+).catch((error: NodeJS.ErrnoException) => {
+  if (error.code !== 'EEXIST') throw error;
+});
 try {
   await migrateTestDatabase(local.content, local.inbox);
   await mkdir(mediaSourceDirectory, { recursive: true });
