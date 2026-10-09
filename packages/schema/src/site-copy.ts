@@ -22,6 +22,7 @@ export const siteCopyKeys = [
   'languages',
   'present',
   'role',
+  'projectDates',
   'outcomes',
   'links',
   'technologies',

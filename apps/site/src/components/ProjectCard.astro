@@ -30,11 +30,17 @@ const categories = snapshot.projectCategories.filter((category) =>
   />
   <div class="project-card-top">
     <p class="metadata muted">
-      {categories
-        .map(
-          (category) => resolveTranslation(category.translations, locale).name,
-        )
-        .join(' / ')}
+      {categories.map((category, index) => {
+        const label = resolveTranslation(category.translations, locale);
+        return (
+          <>
+            {index > 0 && ' / '}
+            <span lang={label.locale} dir={direction(label.locale)}>
+              {label.name}
+            </span>
+          </>
+        );
+      })}
     </p>
     <span class="project-arrow" aria-hidden="true">
       ↗

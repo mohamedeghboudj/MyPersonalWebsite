@@ -314,8 +314,8 @@ const timeline = [
         )}
         {project.startDate && (
           <div>
-            <dt lang={copy.locale}>{text.projects}</dt>
-            <dd>
+            <dt lang={copy.locale}>{text.projectDates}</dt>
+            <dd lang={locale} dir={direction(locale)}>
               <time datetime={project.startDate}>
                 {dateLabel(project.startDate, locale)}
               </time>
@@ -406,7 +406,7 @@ const timeline = [
         <p class="metadata muted" lang={copy.locale}>
           {text.about}
         </p>
-        <h1>{snapshot.profile.fullName}</h1>
+        <h1 dir="auto">{snapshot.profile.fullName}</h1>
         <p class="lead" lang={profile.locale} dir={direction(profile.locale)}>
           {profile.headline}
         </p>

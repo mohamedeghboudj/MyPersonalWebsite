@@ -290,6 +290,8 @@
 .prose {
   max-inline-size: var(--measure-reading);
   margin-inline: auto;
+}
+.prose > p {
   font-size: var(--text-lead);
 }
 .prose > * + * {

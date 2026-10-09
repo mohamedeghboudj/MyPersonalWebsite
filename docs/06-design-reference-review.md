@@ -121,13 +121,13 @@ Higgsfield is the requested tool for suitable visual assets later. Generated wor
 
 For each section, record the reference patterns chosen, the implementation URL or capture, the comparison with brief 02, and any revision. Include English, French and Arabic; keyboard/focus; reduced motion; and real iPhone/mid-range Android results. Separate automated performance results from real-device evidence. No section is approved merely because its controls exist.
 
-| Section                         | Reference starting points                                                      | Evidence  | Status                          |
-| ------------------------------- | ------------------------------------------------------------------------------ | --------- | ------------------------------- |
-| Hero                            | Apple light/dark; ORYZO's single-object composition                            | Not built | Public design and motion phases |
-| Timeline                        | Integrated Biosciences' counters; Cursor's metadata hierarchy                  | Not built | Pending                         |
-| Projects                        | Brex's consistent crops; Cursor's evidence frames; ElevenLabs' panel hierarchy | Not built | Pending                         |
-| Supporting sections and contact | Flat editorial patterns shared across the references                           | Not built | Pending                         |
-| Admin                           | Shared tokens, clear forms and feedback from briefs 02/04                      | Not built | Pending                         |
+| Section                         | Reference starting points                                      | Evidence                                                        | Status                                                                |
+| ------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Hero                            | Cursor/Dala asymmetric composition; ORYZO's single visual      | Phase 3 desktop/mobile captures in `13-public-site-progress.md` | Static composition reviewed; final imagery and motion pending         |
+| Timeline                        | Integrated Biosciences' hairlines; Cursor's metadata hierarchy | `artifacts/public-preview/about-ar-desktop.png`                 | Static chronology reviewed; motion and device proof pending           |
+| Projects                        | Brex's consistent crops; Cursor's evidence frames              | Phase 3 homepage/case-study captures                            | Responsive static media reviewed; interaction polish pending          |
+| Supporting sections and contact | Flat editorial patterns shared across the references           | Phase 3 browser suite, profile and contact templates            | Static details reviewed; contact form remains Phase 4                 |
+| Admin                           | Shared tokens, clear forms and feedback from briefs 02/04      | `12-content-console-review.md`                                  | Desktop/mobile automated review passed; owner upload/delete confirmed |
 
 ## Foundation comparison — 2026-10-06
 
@@ -135,6 +135,6 @@ The shared token file uses a 4px spacing unit, 24px gutters, a 1280px maximum wi
 
 Both Astro and the private React shell import the same CSS. Layout uses logical dimensions and margins; Arabic resets tracking and text transformation and receives a separate system-font fallback stack. These system fonts are a foundation baseline; final licensed web fonts and real Arabic typography are reviewed during the public design phase. Content is visible at rest and native scrolling is preserved. The foundation shell does not implement the hero, timeline or projects, and is not approval of their visual quality. Browser, keyboard, reduced-motion, real-device and section-by-section visual reviews remain required on the actual content screens. See [foundation validation](11-foundation-review.md).
 
-## Console comparison ? 2026-10-08
+## Console comparison — 2026-10-08
 
 Phase 2 implements flat lists, clear labeled forms and language coverage using the existing tokens. Desktop and 390px Chromium captures were inspected; the initial horizontal mobile navigation was replaced by a labeled section selector. Arabic fields use real RTL direction, and the preview visibly identifies translation fallback. Desktop/mobile axe checks passed on the exercised editor flow. This is a private workspace review, not approval of the public hero, timeline or project designs. Real-device and cross-browser verification remain outstanding. See [Phase 2 evidence and limits](12-content-console-review.md).
