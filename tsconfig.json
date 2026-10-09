@@ -29,7 +29,8 @@
     "tests/**/*.ts",
     "scripts/**/*.ts",
     "vitest.config.ts",
-    "apps/admin/**/*.tsx"
+    "apps/admin/**/*.tsx",
+    "apps/site/**/*.ts"
   ],
   "exclude": ["node_modules", "dist", ".tools", ".cache"]
 }

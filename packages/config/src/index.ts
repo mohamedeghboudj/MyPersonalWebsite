@@ -10,6 +10,22 @@ const origin = z
           ['localhost', '127.0.0.1'].includes(new URL(value).hostname))),
     'Expected an origin without a path',
   );
+export const siteBuildEnvSchema = z
+  .object({
+    SITE_ORIGIN: origin.default('http://127.0.0.1:4321'),
+    SITE_MODE: z.enum(['preview', 'production']).default('preview'),
+    SITE_SNAPSHOT_PATH: z.string().min(1).optional(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.SITE_MODE === 'production' &&
+      !value.SITE_ORIGIN.startsWith('https://')
+    )
+      context.addIssue({
+        code: 'custom',
+        message: 'Production canonical URLs require HTTPS',
+      });
+  });
 export const adminEnvSchema = z
   .object({
     APP_ENV: z

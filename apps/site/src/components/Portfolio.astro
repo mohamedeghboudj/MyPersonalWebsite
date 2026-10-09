@@ -1,0 +1,624 @@
+---
+import type { Locale, PublicSnapshot } from '@platform/schema';
+import {
+  resolveTranslation,
+  direction,
+  routePath,
+  dateLabel,
+  contactHref,
+} from '../lib/content';
+import PublicLayout from '../layouts/PublicLayout.astro';
+import ProjectCard from './ProjectCard.astro';
+interface Props {
+  snapshot: PublicSnapshot;
+  locale: Locale;
+  path: string;
+}
+const { snapshot, locale, path } = Astro.props;
+const copy = resolveTranslation(snapshot.siteCopy, locale);
+const text = copy.values;
+const profile = resolveTranslation(snapshot.profile.translations, locale);
+const settings = snapshot.siteSettings.translations.length
+  ? resolveTranslation(snapshot.siteSettings.translations, locale)
+  : null;
+const category = snapshot.projectCategories.find(
+  (item) => path === `projects/category/${item.slug}`,
+);
+const categoryText = category
+  ? resolveTranslation(category.translations, locale)
+  : null;
+const project = snapshot.projects.find(
+  (item) => path === `projects/${item.slug}`,
+);
+const projectText = project
+  ? resolveTranslation(project.translations, locale)
+  : null;
+const listing = category
+  ? snapshot.projects.filter((item) => item.categoryIds.includes(category.id))
+  : snapshot.projects;
+const featured = snapshot.projects
+  .filter((item) => item.isFeatured)
+  .slice(0, 4);
+const timeline = [
+  ...snapshot.education.map((item) => {
+    const t = resolveTranslation(item.translations, locale);
+    return {
+      ...item,
+      kind: 'education',
+      title: t.school,
+      subtitle: t.degree,
+      description: t.description,
+      locale: t.locale,
+      extra: [t.field, t.status].filter(Boolean).join(' · '),
+      highlights: [],
+    };
+  }),
+  ...snapshot.experience.map((item) => {
+    const t = resolveTranslation(item.translations, locale);
+    return {
+      ...item,
+      kind: 'experience',
+      title: t.organization,
+      subtitle: t.role,
+      description: t.description,
+      locale: t.locale,
+      extra: item.employmentType,
+      highlights: item.highlights,
+    };
+  }),
+].sort(
+  (a, b) =>
+    (b.startDate ?? '').localeCompare(a.startDate ?? '') ||
+    a.displayOrder - b.displayOrder,
+);
+---
+
+<PublicLayout snapshot={snapshot} locale={locale} path={path}>
+  {path === '' && (
+    <>
+      <section class="hero container" aria-labelledby="hero-title">
+        <div
+          class="hero-label metadata muted"
+          lang={settings?.locale ?? copy.locale}
+          dir={direction(settings?.locale ?? copy.locale)}
+        >
+          {settings?.availability || text.home}
+        </div>
+        <div class="hero-content">
+          <p class="identity-name">{snapshot.profile.fullName}</p>
+          <h1
+            id="hero-title"
+            lang={profile.locale}
+            dir={direction(profile.locale)}
+          >
+            {profile.headline}
+          </h1>
+          {profile.bio && (
+            <p
+              class="hero-intro"
+              lang={profile.locale}
+              dir={direction(profile.locale)}
+            >
+              {profile.bio}
+            </p>
+          )}
+          <div
+            class="hero-actions"
+            lang={copy.locale}
+            dir={direction(copy.locale)}
+          >
+            <a class="button-link" href={routePath(locale, 'projects')}>
+              {text.viewProjects}
+              <span aria-hidden="true">↗</span>
+            </a>
+            <a class="text-link" href={routePath(locale, 'about')}>
+              {text.about}
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+        <div class="hero-foot metadata muted">
+          <span dir="auto">
+            {[snapshot.profile.city, snapshot.profile.country]
+              .filter(Boolean)
+              .join(' / ')}
+          </span>
+          <ul class="inline-list">
+            {snapshot.projectCategories.map((item) => {
+              const t = resolveTranslation(item.translations, locale);
+              return (
+                <li>
+                  <a
+                    href={routePath(locale, `projects/category/${item.slug}`)}
+                    lang={t.locale}
+                    dir={direction(t.locale)}
+                  >
+                    {t.name}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </section>
+      {featured.length > 0 && (
+        <section class="container section" aria-labelledby="selected-title">
+          <div class="section-heading">
+            <h2 id="selected-title" lang={copy.locale}>
+              {text.selectedWork}
+            </h2>
+            <a
+              class="text-link"
+              href={routePath(locale, 'projects')}
+              lang={copy.locale}
+            >
+              {text.allProjects} <span aria-hidden="true">→</span>
+            </a>
+          </div>
+          <div class="project-grid">
+            {featured.map((item) => (
+              <ProjectCard
+                heading="h3"
+                project={item}
+                snapshot={snapshot}
+                locale={locale}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+      <section
+        class="contact-band container section"
+        aria-labelledby="home-contact"
+      >
+        <h2 id="home-contact" lang={copy.locale}>
+          {text.contactHeading}
+        </h2>
+        <a
+          class="button-link"
+          href={routePath(locale, 'contact')}
+          lang={copy.locale}
+        >
+          {text.contact}
+          <span aria-hidden="true">↗</span>
+        </a>
+      </section>
+    </>
+  )}
+
+  {(path === 'projects' || category) && (
+    <div class="container section">
+      <header class="page-intro">
+        <p class="metadata muted" lang={copy.locale}>
+          {text.projects}
+        </p>
+        <h1
+          lang={categoryText?.locale ?? copy.locale}
+          dir={direction(categoryText?.locale ?? copy.locale)}
+        >
+          {categoryText?.name ?? text.allProjects}
+        </h1>
+        {categoryText?.description && (
+          <p lang={categoryText.locale} dir={direction(categoryText.locale)}>
+            {categoryText.description}
+          </p>
+        )}
+      </header>
+      <nav class="category-nav" aria-label={text.projects}>
+        <a
+          href={routePath(locale, 'projects')}
+          aria-current={!category ? 'page' : undefined}
+          lang={copy.locale}
+        >
+          {text.allProjects}
+        </a>
+        {snapshot.projectCategories.map((item) => {
+          const t = resolveTranslation(item.translations, locale);
+          return (
+            <a
+              href={routePath(locale, `projects/category/${item.slug}`)}
+              aria-current={item.id === category?.id ? 'page' : undefined}
+              lang={t.locale}
+              dir={direction(t.locale)}
+            >
+              {t.name}
+            </a>
+          );
+        })}
+      </nav>
+      {listing.length ? (
+        <div class="project-grid">
+          {listing.map((item) => (
+            <ProjectCard project={item} snapshot={snapshot} locale={locale} />
+          ))}
+        </div>
+      ) : (
+        <p class="empty-state" lang={copy.locale}>
+          {text.emptyProjects}
+        </p>
+      )}
+    </div>
+  )}
+
+  {project && projectText && (
+    <article
+      class="container section case-study"
+      lang={projectText.locale}
+      dir={direction(projectText.locale)}
+      data-content-id={project.id}
+    >
+      <a
+        class="text-link"
+        href={routePath(locale, 'projects')}
+        lang={copy.locale}
+        dir={direction(copy.locale)}
+      >
+        ← {text.backToProjects}
+      </a>
+      <header class="page-intro">
+        <h1>{projectText.title}</h1>
+        <p class="lead">{projectText.summary}</p>
+      </header>
+      <dl class="project-facts">
+        {projectText.role && (
+          <div>
+            <dt lang={copy.locale}>{text.role}</dt>
+            <dd>{projectText.role}</dd>
+          </div>
+        )}
+        {project.technologyIds.length > 0 && (
+          <div>
+            <dt lang={copy.locale}>{text.technologies}</dt>
+            <dd>
+              <ul class="inline-list">
+                {snapshot.technologies
+                  .filter((item) => project.technologyIds.includes(item.id))
+                  .map((item) => (
+                    <li>
+                      <bdi>{item.name}</bdi>
+                    </li>
+                  ))}
+              </ul>
+            </dd>
+          </div>
+        )}
+        {project.startDate && (
+          <div>
+            <dt lang={copy.locale}>{text.projects}</dt>
+            <dd>
+              <time datetime={project.startDate}>
+                {dateLabel(project.startDate, locale)}
+              </time>
+              {project.endDate && (
+                <>
+                  {' '}
+                  —{' '}
+                  <time datetime={project.endDate}>
+                    {dateLabel(project.endDate, locale)}
+                  </time>
+                </>
+              )}
+            </dd>
+          </div>
+        )}
+      </dl>
+      {projectText.body && (
+        <div class="prose">
+          {projectText.body.split(/\n\s*\n/u).map((paragraph) => (
+            <p>{paragraph}</p>
+          ))}
+        </div>
+      )}
+      {projectText.outcomes && (
+        <section class="reading stack section">
+          <h2 lang={copy.locale}>{text.outcomes}</h2>
+          <p class="preserve-lines">{projectText.outcomes}</p>
+        </section>
+      )}
+      {project.links.length > 0 && (
+        <section class="reading stack section">
+          <h2 lang={copy.locale}>{text.links}</h2>
+          <ul class="evidence-links">
+            {project.links.map((link) => {
+              const t = link.translations.length
+                ? resolveTranslation(link.translations, locale)
+                : null;
+              return (
+                <li>
+                  <a
+                    href={link.url}
+                    lang={t?.locale}
+                    dir={t ? direction(t.locale) : 'ltr'}
+                    rel="noreferrer"
+                  >
+                    {t?.label ?? new URL(link.url).hostname}
+                    <span aria-hidden="true"> ↗</span>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+    </article>
+  )}
+
+  {path === 'about' && (
+    <div class="container section">
+      <header class="page-intro">
+        <p class="metadata muted" lang={copy.locale}>
+          {text.about}
+        </p>
+        <h1>{snapshot.profile.fullName}</h1>
+        <p class="lead" lang={profile.locale} dir={direction(profile.locale)}>
+          {profile.headline}
+        </p>
+        {profile.bio && (
+          <p
+            class="preserve-lines"
+            lang={profile.locale}
+            dir={direction(profile.locale)}
+          >
+            {profile.bio}
+          </p>
+        )}
+      </header>
+      {timeline.length > 0 && (
+        <section class="section" aria-labelledby="timeline-title">
+          <h2 id="timeline-title" lang={copy.locale}>
+            {text.experience} / {text.education}
+          </h2>
+          <ol class="timeline">
+            {timeline.map((item) => (
+              <li
+                class="timeline-row"
+                lang={item.locale}
+                dir={direction(item.locale)}
+                data-content-id={item.id}
+              >
+                <div class="timeline-date metadata muted">
+                  {item.startDate && (
+                    <time datetime={item.startDate}>
+                      {dateLabel(item.startDate, locale)}
+                    </time>
+                  )}
+                  <span> — </span>
+                  {item.endDate ? (
+                    <time datetime={item.endDate}>
+                      {dateLabel(item.endDate, locale)}
+                    </time>
+                  ) : (
+                    <span lang={copy.locale}>{text.present}</span>
+                  )}
+                  <p lang={copy.locale}>
+                    {item.kind === 'education'
+                      ? text.education
+                      : text.experience}
+                  </p>
+                </div>
+                <div class="stack-compact">
+                  <h3>{item.subtitle}</h3>
+                  <p class="lead">{item.title}</p>
+                  {item.extra && <p class="muted">{item.extra}</p>}
+                  <p class="preserve-lines">{item.description}</p>
+                  {item.highlights.length > 0 && (
+                    <ul>
+                      {item.highlights.map((highlight) => {
+                        const t = resolveTranslation(
+                          highlight.translations,
+                          locale,
+                        );
+                        return (
+                          <li lang={t.locale} dir={direction(t.locale)}>
+                            {t.body}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {(
+        [
+          ['achievements', snapshot.achievements],
+          ['certificates', snapshot.certificates],
+        ] as const
+      ).map(
+        ([key, items]) =>
+          items.length > 0 && (
+            <section class="section">
+              <h2 lang={copy.locale}>{text[key]}</h2>
+              <div class="record-list">
+                {items.map((item) => {
+                  const t = resolveTranslation(item.translations, locale);
+                  return (
+                    <article
+                      class="record-row"
+                      lang={t.locale}
+                      dir={direction(t.locale)}
+                      data-content-id={item.id}
+                    >
+                      <h3>{t.title}</h3>
+                      <div class="stack-compact">
+                        <p class="muted">{t.issuer}</p>
+                        <p>{t.description}</p>
+                        {item.verificationUrl && (
+                          <a
+                            href={item.verificationUrl}
+                            lang={copy.locale}
+                            rel="noreferrer"
+                          >
+                            {text.verify} ↗
+                          </a>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ),
+      )}
+      {snapshot.initiatives.length > 0 && (
+        <section class="section">
+          <h2 lang={copy.locale}>{text.initiatives}</h2>
+          <div class="record-list">
+            {snapshot.initiatives.map((item) => {
+              const t = resolveTranslation(item.translations, locale);
+              return (
+                <article
+                  class="record-row"
+                  lang={t.locale}
+                  dir={direction(t.locale)}
+                  data-content-id={item.id}
+                >
+                  <h3>{t.title}</h3>
+                  <div class="stack-compact">
+                    <p class="muted">{t.role}</p>
+                    <p>{t.purpose}</p>
+                    <p>{t.description}</p>
+                    <p>{t.outcomes}</p>
+                    {item.collaborators.length > 0 && (
+                      <ul class="inline-list">
+                        {item.collaborators.map((person) => (
+                          <li>
+                            {person.url ? (
+                              <a href={person.url} rel="noreferrer">
+                                {person.name}
+                              </a>
+                            ) : (
+                              person.name
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {item.websiteUrl && (
+                      <a href={item.websiteUrl} rel="noreferrer">
+                        {new URL(item.websiteUrl).hostname} ↗
+                      </a>
+                    )}
+                    {item.projectIds.length > 0 && (
+                      <ul>
+                        {snapshot.projects
+                          .filter((p) => item.projectIds.includes(p.id))
+                          .map((p) => (
+                            <li>
+                              <a href={routePath(locale, `projects/${p.slug}`)}>
+                                {
+                                  resolveTranslation(p.translations, locale)
+                                    .title
+                                }
+                              </a>
+                            </li>
+                          ))}
+                      </ul>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {snapshot.skills.length > 0 && (
+        <section class="section">
+          <h2 lang={copy.locale}>{text.skills}</h2>
+          <div class="skills-grid">
+            {[...snapshot.skillCategories, { id: null, translations: [] }].map(
+              (category) => {
+                const items = snapshot.skills.filter(
+                  (item) => item.categoryId === category.id,
+                );
+                const label = category.translations.length
+                  ? resolveTranslation(category.translations, locale)
+                  : null;
+                return (
+                  items.length > 0 && (
+                    <div class="stack">
+                      <h3 lang={label?.locale ?? copy.locale}>
+                        {label?.name ?? text.skills}
+                      </h3>
+                      <ul class="skill-list">
+                        {items.map((item) => {
+                          const t = resolveTranslation(
+                            item.translations,
+                            locale,
+                          );
+                          return (
+                            <li
+                              class="stack-compact"
+                              lang={t.locale}
+                              dir={direction(t.locale)}
+                            >
+                              <p>{t.name}</p>
+                              <p class="muted">{t.description}</p>
+                              {item.evidence
+                                .filter((e) => e.url)
+                                .map((e) => (
+                                  <a href={e.url!} rel="noreferrer">
+                                    {new URL(e.url!).hostname}
+                                  </a>
+                                ))}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )
+                );
+              },
+            )}
+          </div>
+        </section>
+      )}
+      {snapshot.languages.length > 0 && (
+        <section class="section">
+          <h2 lang={copy.locale}>{text.languages}</h2>
+          <ul class="language-list">
+            {snapshot.languages.map((item) => {
+              const t = resolveTranslation(item.translations, locale);
+              return (
+                <li lang={t.locale} dir={direction(t.locale)}>
+                  <h3>{t.name}</h3>
+                  <p class="muted">{t.proficiency}</p>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+    </div>
+  )}
+  {path === 'contact' && (
+    <section class="container section contact-page">
+      <header class="page-intro">
+        <p class="metadata muted" lang={copy.locale}>
+          {text.contact}
+        </p>
+        <h1 lang={copy.locale} dir={direction(copy.locale)}>
+          {text.contactHeading}
+        </h1>
+        {settings?.availability && (
+          <p lang={settings.locale} dir={direction(settings.locale)}>
+            {settings.availability}
+          </p>
+        )}
+      </header>
+      <ul class="contact-list">
+        {snapshot.profile.contacts.map((contact) => (
+          <li>
+            <a href={contactHref(contact)} dir="ltr">
+              {contact.value}
+              <span aria-hidden="true">↗</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+</PublicLayout>

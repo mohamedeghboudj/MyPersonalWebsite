@@ -1,6 +1,8 @@
 import { z } from 'zod';
 export * from './editor.ts';
 export * from './media-input.ts';
+export * from './public-snapshot.ts';
+export * from './site-copy.ts';
 
 import { locales } from './locales.ts';
 export { locales } from './locales.ts';

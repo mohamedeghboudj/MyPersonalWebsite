@@ -11,6 +11,7 @@ import {
 } from '@platform/config';
 import {
   createSnapshot,
+  capturePublicSnapshot,
   capturePublishSource,
   saveEducation,
   saveProfile,
@@ -126,6 +127,18 @@ export function createAdmin(
     .get('/api/snapshot', async (c) => {
       const snapshot = await createSnapshot(c.env.CONTENT);
       const body = JSON.stringify(snapshot);
+      c.header('X-Snapshot-SHA256', await sha256(body));
+      return c.body(body, 200, {
+        'Content-Type': 'application/json; charset=utf-8',
+      });
+    })
+    .get('/api/public-snapshot', async (c) => {
+      const body = JSON.stringify(await capturePublicSnapshot(c.env.CONTENT));
+      if (new TextEncoder().encode(body).byteLength > 2 * 1024 * 1024)
+        return c.json(
+          { error: 'Public snapshot exceeds the build input limit' },
+          413,
+        );
       c.header('X-Snapshot-SHA256', await sha256(body));
       return c.body(body, 200, {
         'Content-Type': 'application/json; charset=utf-8',
