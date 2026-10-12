@@ -4,6 +4,10 @@ import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
 import { renderPublicHeaders } from '@platform/config';
 import {
+  verifyPublicCvs,
+  stageVerifiedPublicCvs,
+} from '../../../scripts/cv-artifacts';
+import {
   prepareStaticMedia,
   readStaticMedia,
   stageStaticMedia,
@@ -27,13 +31,23 @@ export function staticFiles(): AstroIntegration {
       },
       'astro:build:start': async () => {
         const snapshot = await readSnapshot();
-        if (snapshot.schemaVersion === 2)
+        if (snapshot.schemaVersion === 2) {
+          if (
+            buildConfig.SITE_MODE === 'production' &&
+            !buildConfig.SITE_CV_OUTPUT_DIR
+          )
+            throw new Error(
+              'Production requires all public CVs from the site snapshot',
+            );
+          if (buildConfig.SITE_CV_OUTPUT_DIR)
+            await verifyPublicCvs(snapshot, buildConfig.SITE_CV_OUTPUT_DIR);
           await prepareStaticMedia(
             snapshot,
             buildConfig.SITE_MEDIA_SOURCE_DIR ??
               resolve('../../artifacts/public-media-input'),
             mediaDirectory(snapshot),
           );
+        }
       },
       'astro:build:done': async ({ dir }) => {
         const snapshot = await readSnapshot();
@@ -48,12 +62,20 @@ export function staticFiles(): AstroIntegration {
             mediaDirectory(snapshot),
             fileURLToPath(dir),
           );
-          // A stale PDF must not ride along through Astro's as-is public-dir
-          // copy. V2 CV files join this allowlist only after hash verification
-          // against this exact snapshot is implemented.
-          const allowedPdfs = new Set(
-            Object.values(manifest.documents).map((file) => file.url.slice(1)),
-          );
+          // No PDF may ride along through an unverified public-dir copy.
+          const cvPaths = buildConfig.SITE_CV_OUTPUT_DIR
+            ? await stageVerifiedPublicCvs(
+                snapshot,
+                buildConfig.SITE_CV_OUTPUT_DIR,
+                fileURLToPath(dir),
+              )
+            : [];
+          const allowedPdfs = new Set([
+            ...Object.values(manifest.documents).map((file) =>
+              file.url.slice(1),
+            ),
+            ...cvPaths,
+          ]);
           for (const path of await readdir(dir, { recursive: true })) {
             const normalized = path.replaceAll('\\', '/');
             if (/\.pdf$/iu.test(normalized) && !allowedPdfs.has(normalized))

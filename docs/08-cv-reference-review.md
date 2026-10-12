@@ -27,7 +27,9 @@ Both owner-supplied TeX files were read in full on 2026-10-05. They remain ignor
 | Languages                   | Langues                      | Languages and proficiency                          |
 | Interests                   | Centres d'Intérêt            | Profile/variant presentation data                  |
 
-This order is the reference default. Variant selection/order remains data, with actual content-item foreign keys. The Sprint 0 model currently has profile and education only; their renderer now uses the reference typography, headers, section rules and entry alignment. The remaining content tables and full CV selection UI retain their planned phases. Empty sections are not printed, and reference biographical claims are not baked into template code.
+This order is the reference default. Variant selection/order remains data, with actual content-item foreign keys. The v2 public assembler now resolves all eight content kinds from the explicit public snapshot, preserving selection order, translated bullet overrides and per-field fallback language. The shared renderer keeps the reference typography, section rules, entry alignment and compact skill/language rows. Empty sections are not printed, and reference biographical claims are not baked into template code. Public assembly never accepts a target company or role; private variant controls remain in Phase 5.
+
+The renderer version is now `reference-2.1`, which invalidates previous cache keys. Compiled manifests bind each language's PDF bytes to the exact snapshot, resolved payload, template version and rendered TeX hash. All three manifests must verify before staging any public CV. A newly prepared manifest cannot make an older PDF eligible for publication.
 
 ## Arabic adaptation
 
@@ -40,3 +42,5 @@ Headings and the ongoing-date label are translated data in the content database.
 The reference-derived template compiled successfully in [GitHub Actions](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/37320683489), using full TeX Live and the bundled Poppins fonts. The downloaded artifact's SHA-256 was verified, then each PDF was rendered for visual inspection. English/French accents, URL punctuation, section rules and alignment were checked; Arabic showed joined glyphs, RTL flow, a mirrored entry/date layout and isolated Latin runs. Font inspection confirmed embedded Poppins and Amiri with Unicode mappings. No clipping or missing glyphs were observed in the synthetic one-page fixtures.
 
 The image pull took 136.16 seconds, with individual compilation passes around 9.5–9.8 seconds; the complete Actions run took approximately 234 seconds. These are CV-proof timings, not live publish latency. Review led to an em-dash date separator and restoration of italic institution/light date styles, versioned as `reference-2` and checked by the PR's compile workflow. Full-length personal content and its final pagination will be checked after the content-model phase.
+
+On 2026-10-12, the full-content assembler and artifact-verification tests passed locally. The expanded TeX Live workflow will compile a separate, explicitly synthetic eight-kind fixture in EN/FR/AR and verify the resulting site links and PDF bytes. Compilation and visual inspection of `reference-2.1` are still pending; the earlier one-page evidence does not cover this extension.

@@ -16,6 +16,7 @@ export const siteBuildEnvSchema = z
     SITE_MODE: z.enum(['preview', 'production']).default('preview'),
     SITE_SNAPSHOT_PATH: z.string().min(1).optional(),
     SITE_MEDIA_SOURCE_DIR: z.string().min(1).optional(),
+    SITE_CV_OUTPUT_DIR: z.string().min(1).optional(),
   })
   .superRefine((value, context) => {
     if (

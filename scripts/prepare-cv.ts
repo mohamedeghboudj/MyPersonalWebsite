@@ -1,9 +1,16 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { locales, snapshotSchema } from '@platform/schema';
+import { resolve } from 'node:path';
+import {
+  locales,
+  snapshotSchema,
+  publicSnapshotSchema,
+} from '@platform/schema';
+import { cvDigest } from './cv-artifacts.ts';
 import {
   assembleCv,
+  assemblePublicCv,
   renderLatex,
   cvCacheKey,
   templateVersion,
@@ -28,19 +35,36 @@ for (const [name, expected] of Object.entries(fonts.checksums)) {
   if (actual !== expected)
     throw new Error(`Bundled font checksum mismatch: ${name}`);
 }
-const snapshot = snapshotSchema.parse(
-  JSON.parse(await readFile('artifacts/snapshot.json', 'utf8')),
+const input: unknown = JSON.parse(
+  await readFile(
+    process.env.CV_SNAPSHOT_PATH ?? 'artifacts/snapshot.json',
+    'utf8',
+  ),
 );
-await mkdir('artifacts/cv', { recursive: true });
+const snapshot =
+  input &&
+  typeof input === 'object' &&
+  'schemaVersion' in input &&
+  input.schemaVersion === 2
+    ? publicSnapshotSchema.parse(input)
+    : snapshotSchema.parse(input);
+const output = resolve(process.env.CV_OUTPUT_DIR ?? 'artifacts/cv');
+await mkdir(output, { recursive: true });
 for (const locale of locales) {
-  const payload = assembleCv(snapshot, locale);
+  const payload =
+    snapshot.schemaVersion === 2
+      ? assemblePublicCv(snapshot, locale)
+      : assembleCv(snapshot, locale);
   const tex = renderLatex(payload);
-  await writeFile(`artifacts/cv/${locale}.tex`, tex, 'utf8');
+  await writeFile(resolve(output, `${locale}.tex`), tex, 'utf8');
   await writeFile(
-    `artifacts/cv/${locale}.manifest.json`,
+    resolve(output, `${locale}.manifest.json`),
     JSON.stringify(
       {
+        schemaVersion: 1,
         templateVersion,
+        snapshotSha256: cvDigest(JSON.stringify(snapshot)),
+        texSha256: cvDigest(tex),
         revision: snapshot.revision,
         locale,
         cacheKey: await cvCacheKey(payload),

@@ -7,7 +7,31 @@ import {
 import { resolveTranslation } from '@platform/database';
 import { sha256 } from '@platform/config';
 
-export const templateVersion = 'reference-2';
+export const templateVersion = 'reference-2.1';
+export interface CvText {
+  value: string;
+  locale: Locale;
+}
+export interface CvEntry {
+  id: number;
+  kind: string;
+  title: CvText;
+  subtitle: CvText;
+  dates: CvText;
+  paragraphs: CvText[];
+  bullets: CvText[];
+  links: string[];
+}
+export interface CvSection {
+  key: string;
+  heading: CvText;
+  entries: CvEntry[];
+}
+export type CvPayload = ReturnType<typeof assembleCv> & {
+  contacts?: string[];
+  sections?: CvSection[];
+};
+export { assemblePublicCv } from './public.ts';
 const escapeMap: Record<string, string> = {
   '\\': '\\textbackslash{}',
   '{': '\\{',
@@ -81,7 +105,7 @@ export function assembleCv(raw: unknown, locale: Locale, target?: unknown) {
     items,
   };
 }
-export async function cvCacheKey(payload: ReturnType<typeof assembleCv>) {
+export async function cvCacheKey(payload: CvPayload) {
   return sha256(JSON.stringify({ templateVersion, payload }));
 }
 // Latin runs inside Arabic are wrapped by trusted code, never by form-entered TeX.
@@ -97,7 +121,7 @@ function arabicText(value: string): string {
     })
     .join('');
 }
-export function renderLatex(payload: ReturnType<typeof assembleCv>): string {
+export function renderLatex(payload: CvPayload): string {
   const language = { en: 'english', fr: 'french', ar: 'arabic' }[
     payload.locale
   ];
@@ -117,6 +141,21 @@ export function renderLatex(payload: ReturnType<typeof assembleCv>): string {
   };
   const rtl = payload.locale === 'ar';
   const french = payload.locale === 'fr';
+  const renderText = (run: CvText) => text(run.value, run.locale);
+  const renderEntry = (entry: CvEntry) => {
+    const body = [
+      ...entry.paragraphs.map((run) => `${renderText(run)}\\par`),
+      ...(entry.bullets.length
+        ? [
+            `\\begin{tightitemize}\n${entry.bullets.map((run) => `\\item ${renderText(run)}`).join('\n')}\n\\end{tightitemize}`,
+          ]
+        : []),
+      ...entry.links.map((value) => `${text(value, 'en')}\\par`),
+    ].join('\n');
+    if (entry.kind === 'skill' || entry.kind === 'language')
+      return `\\skillrow{${renderText(entry.title)}}{${renderText(entry.subtitle)}}\n${body}`;
+    return `\\cventry{${renderText(entry.title)}}{${renderText(entry.subtitle)}}{${renderText(entry.dates)}}\n${body}\\vspace{3pt}`;
+  };
   return `\\documentclass[10pt,a4paper]{article}
 \\usepackage[a4paper,left=${french ? '15' : '17'}mm,right=${french ? '15' : '17'}mm,top=${french ? '9.5' : '11'}mm,bottom=${french ? '9.5' : '11'}mm]{geometry}
 \\usepackage{fontspec}
@@ -150,11 +189,13 @@ export function renderLatex(payload: ReturnType<typeof assembleCv>): string {
 \\begin{center}
 {\\bfseries\\fontsize{20}{23}\\selectfont ${text(payload.name, 'en')}}\\par\\vspace{3pt}
 {\\color{slate}\\fontsize{${rtl ? '12' : '10.3'}}{15}\\selectfont ${text(payload.headline, payload.headlineLocale)}}\\par
+${payload.contacts?.length ? `{\\color{slate}\\fontsize{9}{12}\\selectfont ${payload.contacts.map((value) => text(value, 'en')).join(' \\textbullet{} ')}}\\par` : ''}
 \\end{center}
 \\cvsection{${text(payload.profileHeading, payload.summaryLocale)}}
 ${text(payload.summary, payload.summaryLocale)}\\par
 ${payload.target ? `\\medskip${text('Application to', 'en')} ${text(payload.target.company, /[\u0600-\u06ff]/u.test(payload.target.company) ? 'ar' : 'en')} — ${text(payload.target.role, /[\u0600-\u06ff]/u.test(payload.target.role) ? 'ar' : 'en')}\\par` : ''}
-${payload.items.length ? `\\cvsection{${text(payload.educationHeading, payload.summaryLocale)}}` : ''}
+${payload.sections ? payload.sections.map((section) => `\\cvsection{${renderText(section.heading)}}\n${section.entries.map(renderEntry).join('\n')}`).join('\n') : ''}
+${!payload.sections && payload.items.length ? `\\cvsection{${text(payload.educationHeading, payload.summaryLocale)}}` : ''}
 ${payload.items
   .map(
     (

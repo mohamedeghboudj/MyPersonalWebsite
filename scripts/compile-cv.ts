@@ -1,6 +1,11 @@
 import { spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile, cp } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { locales } from '@platform/schema';
+import { readPreparedCv, sealCompiledCv } from './cv-artifacts.ts';
+
+const outputDirectory = resolve(process.env.CV_OUTPUT_DIR ?? 'artifacts/cv');
+for (const locale of locales) await readPreparedCv(outputDirectory, locale);
 
 // Maintained full TeX Live image; linux/amd64 digest from its published package.
 const image =
@@ -32,15 +37,15 @@ const measurements: {
   compileMs: number;
   bytes: number;
 }[] = [];
-for (const locale of ['en', 'fr', 'ar']) {
-  const directory = resolve(`artifacts/cv/${locale}`);
+for (const locale of locales) {
+  const directory = resolve(outputDirectory, locale);
   await mkdir(directory, { recursive: true });
   await cp('packages/cv-engine/fonts', `${directory}/fonts`, {
     recursive: true,
   });
   await writeFile(
     `${directory}/cv.tex`,
-    await readFile(`artifacts/cv/${locale}.tex`),
+    await readFile(resolve(outputDirectory, `${locale}.tex`)),
   );
   for (const pass of [1, 2]) {
     const started = performance.now();
@@ -113,9 +118,10 @@ for (const locale of ['en', 'fr', 'ar']) {
       bytes: pdf.length,
     });
   }
+  await sealCompiledCv(outputDirectory, locale);
 }
 await writeFile(
-  'artifacts/cv/measurements.json',
+  resolve(outputDirectory, 'measurements.json'),
   JSON.stringify(
     {
       image,

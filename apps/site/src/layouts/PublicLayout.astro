@@ -146,6 +146,18 @@ const localPath = (language: Locale, value = '') =>
         )}
       </div>
       <ul class="inline-list">
+        {buildConfig.SITE_CV_OUTPUT_DIR && (
+          <li>
+            <a
+              href={`/cv/${locale}.pdf`}
+              download={`cv-${locale}.pdf`}
+              lang={copy.locale}
+              dir={direction(copy.locale)}
+            >
+              {text.downloadCv}
+            </a>
+          </li>
+        )}
         {snapshot.socialLinks.map((link) => {
           const label = link.translations.length
             ? resolveTranslation(link.translations, locale)

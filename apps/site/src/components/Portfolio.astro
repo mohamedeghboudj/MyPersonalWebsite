@@ -6,6 +6,7 @@ import {
   routePath,
   dateLabel,
   contactHref,
+  buildConfig,
 } from '../lib/content';
 import PublicLayout from '../layouts/PublicLayout.astro';
 import ProjectCard from './ProjectCard.astro';
@@ -119,10 +120,21 @@ const timeline = [
                 {text.viewProjects}
                 <span aria-hidden="true">↗</span>
               </a>
-              <a class="text-link" href={routePath(locale, 'about')}>
-                {text.about}
-                <span aria-hidden="true">→</span>
-              </a>
+              {buildConfig.SITE_CV_OUTPUT_DIR ? (
+                <a
+                  class="text-link"
+                  href={`/cv/${locale}.pdf`}
+                  download={`cv-${locale}.pdf`}
+                >
+                  {text.downloadCv}
+                  <span aria-hidden="true">↓</span>
+                </a>
+              ) : (
+                <a class="text-link" href={routePath(locale, 'about')}>
+                  {text.about}
+                  <span aria-hidden="true">→</span>
+                </a>
+              )}
             </div>
           </div>
           <PublicMedia
