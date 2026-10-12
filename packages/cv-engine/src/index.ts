@@ -129,8 +129,6 @@ export function renderLatex(payload: CvPayload): string {
     // Check the whole field before segmenting it, so a control sequence cannot
     // be separated into harmless-looking fragments by bidi handling.
     escapeLatex(value);
-    if (payload.locale === 'ar' && source !== 'ar')
-      return `\\textenglish{${escapeLatex(value)}}`;
     if (source === 'ar')
       return payload.locale === 'ar'
         ? arabicText(value)

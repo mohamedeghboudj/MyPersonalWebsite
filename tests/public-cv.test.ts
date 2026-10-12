@@ -83,6 +83,16 @@ describe('CV from the exact public snapshot', () => {
     const tex = renderLatex(payload);
     expect(tex).toContain('\\textenglish{Project Atlas}');
     expect(tex).toContain('\\item \\textenglish{Focused example outcome.}');
+    source.projects[0]!.translations = [
+      {
+        ...source.projects[0]!.translations[0]!,
+        locale: 'fr',
+        title: 'Projet de démonstration',
+      },
+    ];
+    expect(renderLatex(assemblePublicCv(source, 'ar'))).toContain(
+      '\\textfrench{Projet de démonstration}',
+    );
     source.publicVariant.translations =
       source.publicVariant.translations.filter((row) => row.locale === 'ar');
     expect(renderLatex(assemblePublicCv(source, 'fr'))).toContain(

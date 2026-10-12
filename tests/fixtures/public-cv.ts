@@ -107,7 +107,8 @@ export function publicCvFixture(baseline: PublicSnapshot): PublicSnapshot {
       achievedOn: '2025-03-01',
       verificationUrl: null,
       mediaId: null,
-      translations: evidence,
+      // Exercise French-only fallback inside the English and Arabic PDFs too.
+      translations: evidence.filter((row) => row.locale === 'fr'),
     },
   ];
   snapshot.certificates = [
