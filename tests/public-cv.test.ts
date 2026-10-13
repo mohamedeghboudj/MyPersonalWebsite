@@ -12,6 +12,7 @@ import {
   stageVerifiedPublicCvs,
   verifyPublicCvs,
   readPreparedCv,
+  verifyCvSectionPagination,
 } from '../scripts/cv-artifacts';
 import { localDatabase, migrateTestDatabase } from '../scripts/local-database';
 import { publicCvFixture } from './fixtures/public-cv';
@@ -42,7 +43,9 @@ describe('CV from the exact public snapshot', () => {
     expect(tex).toContain('A\\&B');
     expect(tex).toContain('100\\%');
     expect(tex).toContain('\\begin{tightitemize}');
-    expect(tex).toContain('\\skillrow{French}{Example proficiency}');
+    expect(tex).toContain(
+      '\\skillrow{French\\label{cv-entry-17}}{Example proficiency}',
+    );
     expect(tex).not.toContain('Application to');
   });
   it('does not reorder interleaved sections or accept missing, wrong-kind or duplicate selections', () => {
@@ -184,6 +187,29 @@ async function compiledFixture() {
   return directory;
 }
 describe('public PDF artifact gate', () => {
+  it('rejects missing or orphaned section headings using actual TeX page labels', () => {
+    const tex = '\\label{cv-section-0-first-11}';
+    const heading = '\\newlabel{cv-section-0-first-11}{{}{1}}';
+    expect(
+      verifyCvSectionPagination(
+        tex,
+        `${heading}\n\\newlabel{cv-entry-11}{{}{1}}`,
+      ),
+    ).toBe(1);
+    expect(() =>
+      verifyCvSectionPagination(
+        tex,
+        `${heading}\n\\newlabel{cv-entry-11}{{}{2}}`,
+      ),
+    ).toThrow('orphaned');
+    expect(() => verifyCvSectionPagination(tex, heading)).toThrow('missing');
+    expect(() =>
+      verifyCvSectionPagination(tex, `${heading}\n${heading}`),
+    ).toThrow('Duplicate');
+    expect(
+      verifyCvSectionPagination('Legacy template without section labels', ''),
+    ).toBe(0);
+  });
   it('stages all three verified byte sequences and rejects changed snapshots or tampered PDFs', async () => {
     const source = await compiledFixture();
     const output = resolve(source, 'site');

@@ -10,6 +10,10 @@ const origin = z
           ['localhost', '127.0.0.1'].includes(new URL(value).hostname))),
     'Expected an origin without a path',
   );
+export const cvBuildEnvSchema = z.object({
+  CV_SNAPSHOT_PATH: z.string().trim().min(1).default('artifacts/snapshot.json'),
+  CV_OUTPUT_DIR: z.string().trim().min(1).default('artifacts/cv'),
+});
 export const siteBuildEnvSchema = z
   .object({
     SITE_ORIGIN: origin.default('http://127.0.0.1:4321'),

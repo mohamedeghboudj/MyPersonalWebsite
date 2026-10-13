@@ -20,6 +20,7 @@ import {
   adminEnvSchema,
   boundedJson,
   contactEnvSchema,
+  cvBuildEnvSchema,
   dummyTurnstile,
 } from '@platform/config';
 import { spikeEducation } from '../scripts/fixtures';
@@ -172,6 +173,16 @@ describe('shared schemas', () => {
       );
   });
   it('fails closed on malformed environment values', () => {
+    expect(cvBuildEnvSchema.parse({})).toEqual({
+      CV_SNAPSHOT_PATH: 'artifacts/snapshot.json',
+      CV_OUTPUT_DIR: 'artifacts/cv',
+    });
+    expect(cvBuildEnvSchema.safeParse({ CV_OUTPUT_DIR: ' ' }).success).toBe(
+      false,
+    );
+    expect(cvBuildEnvSchema.safeParse({ CV_SNAPSHOT_PATH: '' }).success).toBe(
+      false,
+    );
     const admin = {
       ACCESS_ISSUER: 'https://test.cloudflareaccess.com',
       ACCESS_AUDIENCE: 'test-audience-0001',

@@ -2,9 +2,15 @@ import { spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile, cp } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { locales } from '@platform/schema';
-import { readPreparedCv, sealCompiledCv } from './cv-artifacts.ts';
+import { cvBuildEnvSchema } from '@platform/config';
+import {
+  readPreparedCv,
+  sealCompiledCv,
+  verifyCvSectionPagination,
+} from './cv-artifacts.ts';
 
-const outputDirectory = resolve(process.env.CV_OUTPUT_DIR ?? 'artifacts/cv');
+const config = cvBuildEnvSchema.parse(process.env);
+const outputDirectory = resolve(config.CV_OUTPUT_DIR);
 for (const locale of locales) await readPreparedCv(outputDirectory, locale);
 
 // Maintained full TeX Live image; linux/amd64 digest from its published package.
@@ -118,6 +124,11 @@ for (const locale of locales) {
       bytes: pdf.length,
     });
   }
+  const sections = verifyCvSectionPagination(
+    await readFile(`${directory}/cv.tex`, 'utf8'),
+    await readFile(`${directory}/cv.aux`, 'utf8'),
+  );
+  console.log(`Verified ${sections} section/entry page pairs for ${locale}.`);
   await sealCompiledCv(outputDirectory, locale);
 }
 await writeFile(

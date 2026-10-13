@@ -7,7 +7,7 @@ import {
 import { resolveTranslation } from '@platform/database';
 import { sha256 } from '@platform/config';
 
-export const templateVersion = 'reference-2.1';
+export const templateVersion = 'reference-2.2';
 export interface CvText {
   value: string;
   locale: Locale;
@@ -141,6 +141,7 @@ export function renderLatex(payload: CvPayload): string {
   const french = payload.locale === 'fr';
   const renderText = (run: CvText) => text(run.value, run.locale);
   const renderEntry = (entry: CvEntry) => {
+    const title = `${renderText(entry.title)}\\label{cv-entry-${entry.id}}`;
     const body = [
       ...entry.paragraphs.map((run) => `${renderText(run)}\\par`),
       ...(entry.bullets.length
@@ -151,8 +152,14 @@ export function renderLatex(payload: CvPayload): string {
       ...entry.links.map((value) => `${text(value, 'en')}\\par`),
     ].join('\n');
     if (entry.kind === 'skill' || entry.kind === 'language')
-      return `\\skillrow{${renderText(entry.title)}}{${renderText(entry.subtitle)}}\n${body}`;
-    return `\\cventry{${renderText(entry.title)}}{${renderText(entry.subtitle)}}{${renderText(entry.dates)}}\n${body}\\vspace{3pt}`;
+      return `\\skillrow{${title}}{${renderText(entry.subtitle)}}\n${body}`;
+    return `\\cventry{${title}}{${renderText(entry.subtitle)}}{${renderText(entry.dates)}}\n${body}\\vspace{3pt}`;
+  };
+  const renderSection = (section: CvSection, index: number) => {
+    const first = section.entries[0];
+    if (!first) return '';
+    const heading = `${renderText(section.heading)}\\label{cv-section-${index}-first-${first.id}}`;
+    return `\\cvsection{${heading}}\n${section.entries.map(renderEntry).join('\n')}`;
   };
   return `\\documentclass[10pt,a4paper]{article}
 \\usepackage[a4paper,left=${french ? '15' : '17'}mm,right=${french ? '15' : '17'}mm,top=${french ? '9.5' : '11'}mm,bottom=${french ? '9.5' : '11'}mm]{geometry}
@@ -174,11 +181,15 @@ export function renderLatex(payload: CvPayload): string {
 \\definecolor{slate}{HTML}{4D4D4D}
 \\definecolor{hairline}{HTML}{B3B3B3}
 \\color{ink}
-\\newcommand{\\cvsection}[1]{\\par\\needspace{5\\baselineskip}\\vspace{${french ? '5' : '7'}pt}{\\bfseries\\fontsize{${rtl ? '13' : '11.3'}}{15}\\selectfont #1}\\par\\vspace{2pt}{\\color{hairline}\\hrule height 0.8pt}\\vspace{4pt}}
-\\newcommand{\\cventry}[3]{\\par\\needspace{4\\baselineskip}\\noindent\\parbox[t]{0.74\\linewidth}{{${rtl ? '\\bfseries' : '\\cvmedium'}\\fontsize{${rtl ? '11.5' : '9.9'}}{${rtl ? '15' : '12'}}\\selectfont #1}\\par{${rtl ? '' : '\\itshape'}\\color{slate}\\fontsize{${rtl ? '11' : '9.3'}}{${rtl ? '15' : '11.8'}}\\selectfont #2}}\\hfill\\parbox[t]{0.23\\linewidth}{${rtl ? '\\raggedright' : '\\raggedleft\\cvlight'}\\color{slate}\\fontsize{${rtl ? '10.5' : '8.7'}}{13}\\selectfont #3}\\par\\vspace{2pt}}
+% Reserve the section rule/spacing AND the entry's own four-line reservation.
+% A five-line approximation could leave an Arabic heading on the prior page.
+\\newcommand{\\cvsection}[1]{\\par\\Needspace{7\\baselineskip}\\vspace{${french ? '5' : '7'}pt}{\\bfseries\\fontsize{${rtl ? '13' : '11.3'}}{15}\\selectfont #1}\\par\\vspace{2pt}{\\color{hairline}\\hrule height 0.8pt}\\vspace{4pt}}
+\\newcommand{\\cventry}[3]{\\par\\Needspace{4\\baselineskip}\\noindent\\parbox[t]{0.74\\linewidth}{{${rtl ? '\\bfseries' : '\\cvmedium'}\\fontsize{${rtl ? '11.5' : '9.9'}}{${rtl ? '15' : '12'}}\\selectfont #1}\\par{${rtl ? '' : '\\itshape'}\\color{slate}\\fontsize{${rtl ? '11' : '9.3'}}{${rtl ? '15' : '11.8'}}\\selectfont #2}}\\hfill\\parbox[t]{0.23\\linewidth}{${rtl ? '\\raggedright' : '\\raggedleft\\cvlight'}\\color{slate}\\fontsize{${rtl ? '10.5' : '8.7'}}{13}\\selectfont #3}\\par\\vspace{2pt}}
 \\newenvironment{tightitemize}{\\begin{itemize}[leftmargin=11pt,itemsep=${french ? '0' : '0.5'}pt,topsep=2pt,parsep=0pt,partopsep=0pt]}{\\end{itemize}}
 \\newcommand{\\skillrow}[2]{\\noindent{\\bfseries #1${french ? '~' : ''}: }#2\\par\\vspace{2pt}}
 \\pagestyle{empty}
+% Stable ASCII page identifiers for compile-time pagination checks in every language.
+\\renewcommand{\\thepage}{\\number\\value{page}}
 \\setlength{\\parindent}{0pt}
 \\setlength{\\parskip}{0pt}
 \\emergencystretch=1.2em
@@ -192,7 +203,7 @@ ${payload.contacts?.length ? `{\\color{slate}\\fontsize{9}{12}\\selectfont ${pay
 \\cvsection{${text(payload.profileHeading, payload.summaryLocale)}}
 ${text(payload.summary, payload.summaryLocale)}\\par
 ${payload.target ? `\\medskip${text('Application to', 'en')} ${text(payload.target.company, /[\u0600-\u06ff]/u.test(payload.target.company) ? 'ar' : 'en')} — ${text(payload.target.role, /[\u0600-\u06ff]/u.test(payload.target.role) ? 'ar' : 'en')}\\par` : ''}
-${payload.sections ? payload.sections.map((section) => `\\cvsection{${renderText(section.heading)}}\n${section.entries.map(renderEntry).join('\n')}`).join('\n') : ''}
+${payload.sections ? payload.sections.map(renderSection).join('\n') : ''}
 ${!payload.sections && payload.items.length ? `\\cvsection{${text(payload.educationHeading, payload.summaryLocale)}}` : ''}
 ${payload.items
   .map(

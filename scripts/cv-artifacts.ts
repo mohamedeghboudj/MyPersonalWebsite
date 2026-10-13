@@ -21,6 +21,30 @@ import {
 const digest = z.string().regex(/^[a-f0-9]{64}$/u);
 export const cvDigest = (value: string | Uint8Array) =>
   createHash('sha256').update(value).digest('hex');
+// Labels are generated from numeric IDs by the trusted renderer. Compare their
+// actual shipped-out page numbers after the second TeX pass, without executing
+// any compiler output on the host. This catches orphan headings in every locale.
+export function verifyCvSectionPagination(tex: string, aux: string) {
+  const expected = [
+    ...tex.matchAll(/\\label\{(cv-section-\d+-first-(\d+))\}/gu),
+  ];
+  const labels = new Map<string, string>();
+  for (const match of aux.matchAll(
+    /\\newlabel\{(cv-(?:section-\d+-first-\d+|entry-\d+))\}\{\{[^{}]*\}\{(\d+)\}\}/gu,
+  )) {
+    if (labels.has(match[1]!)) throw new Error('Duplicate CV pagination label');
+    labels.set(match[1]!, match[2]!);
+  }
+  for (const match of expected) {
+    const headingPage = labels.get(match[1]!);
+    const entryPage = labels.get(`cv-entry-${match[2]}`);
+    if (!headingPage || !entryPage || headingPage !== entryPage)
+      throw new Error(
+        'CV section heading is orphaned or missing pagination evidence',
+      );
+  }
+  return expected.length;
+}
 export const preparedCvManifestSchema = z
   .object({
     schemaVersion: z.literal(1),

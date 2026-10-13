@@ -8,6 +8,7 @@ import {
   publicSnapshotSchema,
 } from '@platform/schema';
 import { cvDigest } from './cv-artifacts.ts';
+import { cvBuildEnvSchema } from '@platform/config';
 import {
   assembleCv,
   assemblePublicCv,
@@ -16,6 +17,7 @@ import {
   templateVersion,
 } from '@platform/cv-engine';
 
+const config = cvBuildEnvSchema.parse(process.env);
 const fonts = z
   .object({
     checksums: z.record(
@@ -36,10 +38,7 @@ for (const [name, expected] of Object.entries(fonts.checksums)) {
     throw new Error(`Bundled font checksum mismatch: ${name}`);
 }
 const input: unknown = JSON.parse(
-  await readFile(
-    process.env.CV_SNAPSHOT_PATH ?? 'artifacts/snapshot.json',
-    'utf8',
-  ),
+  await readFile(config.CV_SNAPSHOT_PATH, 'utf8'),
 );
 const snapshot =
   input &&
@@ -48,7 +47,7 @@ const snapshot =
   input.schemaVersion === 2
     ? publicSnapshotSchema.parse(input)
     : snapshotSchema.parse(input);
-const output = resolve(process.env.CV_OUTPUT_DIR ?? 'artifacts/cv');
+const output = resolve(config.CV_OUTPUT_DIR);
 await mkdir(output, { recursive: true });
 for (const locale of locales) {
   const payload =
