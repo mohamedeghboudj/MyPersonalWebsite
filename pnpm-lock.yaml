@@ -21,8 +21,8 @@ importers:
         specifier: workspace:*
         version: link:packages/schema
       drizzle-orm:
-        specifier: 0.45.3
-        version: 0.45.3(@cloudflare/workers-types@5.20261004.1)
+        specifier: 0.45.4
+        version: 0.45.4(@cloudflare/workers-types@5.20261004.1)
       hono:
         specifier: 4.13.13
         version: 4.13.13
@@ -1526,8 +1526,8 @@ packages:
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
 
-  drizzle-orm@0.45.3:
-    resolution: {integrity: sha512-CAloER21cDdcgZ1OmjrZX82EeRNsdP+y0onX/eyoYDaYzki/adrAa91lzM5jWh7zZPK4qUbw/6LGv9J+A+uizA==}
+  drizzle-orm@0.45.4:
+    resolution: {integrity: sha512-NiM1YZpJ2UxyeE67DpDDZ+Tsw4YLX3trSlkNT7Tm9eKoUNb1LvaAaQzXgYQsWs+AQ9TUmmwMmBOCXuqqxUWKKQ==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -3735,7 +3735,7 @@ snapshots:
       domelementtype: 2.3.0
       domhandler: 5.0.3
 
-  drizzle-orm@0.45.3(@cloudflare/workers-types@5.20261004.1):
+  drizzle-orm@0.45.4(@cloudflare/workers-types@5.20261004.1):
     optionalDependencies:
       '@cloudflare/workers-types': 5.20261004.1
 
