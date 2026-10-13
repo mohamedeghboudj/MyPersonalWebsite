@@ -44,6 +44,9 @@ describe('CV from the exact public snapshot', () => {
     expect(tex).toContain('100\\%');
     expect(tex).toContain('\\begin{tightitemize}');
     expect(tex).toContain(
+      '\\skillrow{Software\\label{cv-entry-16}}{TypeScript}',
+    );
+    expect(tex).toContain(
       '\\skillrow{French\\label{cv-entry-17}}{Example proficiency}',
     );
     expect(tex).not.toContain('Application to');

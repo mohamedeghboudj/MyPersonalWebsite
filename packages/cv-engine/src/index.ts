@@ -7,7 +7,7 @@ import {
 import { resolveTranslation } from '@platform/database';
 import { sha256 } from '@platform/config';
 
-export const templateVersion = 'reference-2.2';
+export const templateVersion = 'reference-2.3';
 export interface CvText {
   value: string;
   locale: Locale;
@@ -151,7 +151,12 @@ export function renderLatex(payload: CvPayload): string {
         : []),
       ...entry.links.map((value) => `${text(value, 'en')}\\par`),
     ].join('\n');
-    if (entry.kind === 'skill' || entry.kind === 'language')
+    if (entry.kind === 'skill') {
+      if (entry.subtitle.value.trim())
+        return `\\skillrow{${renderText(entry.subtitle)}\\label{cv-entry-${entry.id}}}{${renderText(entry.title)}}\n${body}`;
+      return `{\\bfseries ${title}}\\par\n${body}`;
+    }
+    if (entry.kind === 'language')
       return `\\skillrow{${title}}{${renderText(entry.subtitle)}}\n${body}`;
     return `\\cventry{${title}}{${renderText(entry.subtitle)}}{${renderText(entry.dates)}}\n${body}\\vspace{3pt}`;
   };
