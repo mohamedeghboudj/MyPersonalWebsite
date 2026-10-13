@@ -196,6 +196,12 @@ describe('public PDF artifact gate', () => {
         `${heading}\n\\newlabel{cv-entry-11}{{}{1}}`,
       ),
     ).toBe(1);
+    expect(
+      verifyCvSectionPagination(
+        tex,
+        '\\newlabel{cv-section-0-first-11}{{}{1}{}{}{}}\n\\newlabel{cv-entry-11}{{}{1}{}{}{}}',
+      ),
+    ).toBe(1);
     expect(() =>
       verifyCvSectionPagination(
         tex,

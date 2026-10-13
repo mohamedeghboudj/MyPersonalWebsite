@@ -29,8 +29,10 @@ export function verifyCvSectionPagination(tex: string, aux: string) {
     ...tex.matchAll(/\\label\{(cv-section-\d+-first-(\d+))\}/gu),
   ];
   const labels = new Map<string, string>();
+  // Current LaTeX adds three metadata groups after the page; older kernels
+  // wrote only the reference and page. Read the stable first two groups.
   for (const match of aux.matchAll(
-    /\\newlabel\{(cv-(?:section-\d+-first-\d+|entry-\d+))\}\{\{[^{}]*\}\{(\d+)\}\}/gu,
+    /\\newlabel\{(cv-(?:section-\d+-first-\d+|entry-\d+))\}\{\{[^{}]*\}\{(\d+)\}/gu,
   )) {
     if (labels.has(match[1]!)) throw new Error('Duplicate CV pagination label');
     labels.set(match[1]!, match[2]!);
@@ -38,9 +40,11 @@ export function verifyCvSectionPagination(tex: string, aux: string) {
   for (const match of expected) {
     const headingPage = labels.get(match[1]!);
     const entryPage = labels.get(`cv-entry-${match[2]}`);
-    if (!headingPage || !entryPage || headingPage !== entryPage)
+    if (!headingPage || !entryPage)
+      throw new Error(`CV section ${match[1]} is missing pagination evidence`);
+    if (headingPage !== entryPage)
       throw new Error(
-        'CV section heading is orphaned or missing pagination evidence',
+        `CV section ${match[1]} is orphaned: heading page ${headingPage}, entry page ${entryPage}`,
       );
   }
   return expected.length;
