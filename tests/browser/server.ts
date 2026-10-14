@@ -25,6 +25,15 @@ const server = createServer(async (req, res) => {
       res.writeHead(403).end();
       return;
     }
+    if (
+      req.method === 'POST' &&
+      url.pathname === '/__stop_test_server' &&
+      req.headers.origin === origin
+    ) {
+      res.writeHead(204).end();
+      server.close(() => void stop());
+      return;
+    }
     if (url.pathname.startsWith('/api/')) {
       const chunks: Uint8Array[] = [];
       for await (const chunk of req) chunks.push(chunk);

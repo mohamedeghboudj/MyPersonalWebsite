@@ -7,4 +7,5 @@ export * from './snapshot.ts';
 export * from './editor.ts';
 export * from './media-editor.ts';
 export * from './public-snapshot.ts';
+export * from './publish-captures.ts';
 export * from './site-copy.ts';

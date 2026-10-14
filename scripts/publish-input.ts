@@ -2,9 +2,9 @@ import { mkdir, writeFile, rename } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { publishInputSchema, type PublishInput } from '@platform/schema';
-import { boundedBytes } from '@platform/config';
+import { boundedBytes, publishCapturePolicy } from '@platform/config';
 
-export const maxPublishInputBytes = 2 * 1024 * 1024;
+export const maxPublishInputBytes = publishCapturePolicy.maxInputBytes;
 const digest = (bytes: Uint8Array | string) =>
   createHash('sha256').update(bytes).digest('hex');
 

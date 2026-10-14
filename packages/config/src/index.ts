@@ -1,4 +1,5 @@
 import { z } from 'zod';
+export { publishCapturePolicy } from './publishing.ts';
 
 const origin = z
   .url()

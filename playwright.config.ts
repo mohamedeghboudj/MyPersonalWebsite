@@ -1,5 +1,6 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
+  globalTeardown: './tests/browser/teardown.ts',
   testDir: './tests/browser',
   testMatch: '**/*.spec.ts',
   workers: 1,

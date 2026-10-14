@@ -23,6 +23,7 @@ import { spikePage, spikeScript } from './spike.ts';
 import { createContentRoutes } from './content-routes.ts';
 import { hasFreshLogin } from './fresh-auth.ts';
 import { mediaRoutes } from './media-routes.ts';
+import { createPublishingRoutes } from './publishing-routes.ts';
 
 type Bindings = {
   ASSETS?: Fetcher;
@@ -199,6 +200,7 @@ export function createAdmin(
       return c.json({ saved: true });
     })
     .route('/api/media', mediaRoutes)
+    .route('/api/publishing', createPublishingRoutes(freshLogin))
     .route('/api/content', createContentRoutes(freshLogin))
     .get('*', async (c) => {
       if (c.req.path.startsWith('/api/'))
