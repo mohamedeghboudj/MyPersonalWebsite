@@ -9,7 +9,11 @@ import {
 } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
-import { publicSnapshotSchema, siteCopyKeys } from '@platform/schema';
+import {
+  publicSnapshotSchema,
+  publishInputSchema,
+  siteCopyKeys,
+} from '@platform/schema';
 import * as core from './tables.ts';
 import * as content from './foundation-tables.ts';
 import * as details from './content-details.ts';
@@ -52,6 +56,19 @@ const location = ['city', 'country'] as const;
 // registry. Every projection names its columns. Inbox, audit, private CV data,
 // certificate originals and raw R2 keys have no output projection here.
 export async function capturePublicSnapshot(binding: D1Database) {
+  return (await capture(binding, false)).snapshot;
+}
+
+// The future authenticated publisher stores this envelope privately. The
+// public endpoint continues to return only capturePublicSnapshot's projection.
+export async function capturePublishInput(binding: D1Database) {
+  return publishInputSchema.parse({
+    schemaVersion: 1,
+    ...(await capture(binding, true)),
+  });
+}
+
+async function capture(binding: D1Database, includeMediaSources: boolean) {
   const db = drizzle(binding);
   const visibleProjects = db
     .select({ id: content.projects.id })
@@ -413,7 +430,16 @@ export async function capturePublicSnapshot(binding: D1Database) {
   });
   // D1 batch is a consistent transaction. Joining translations keeps the entire
   // capture below the Free plan's 50 queries per Worker invocation.
-  if (queries.length + 1 > 45)
+  const sourceQueries = includeMediaSources
+    ? [
+        db
+          .select({ id: files.media.id, r2Key: files.media.r2Key })
+          .from(files.media)
+          .where(projections.media!.where)
+          .orderBy(asc(files.media.id)),
+      ]
+    : [];
+  if (queries.length + sourceQueries.length + 1 > 45)
     throw new Error('Public snapshot query budget exceeded');
   const [stateRows, ...results] = await db.batch([
     db
@@ -421,6 +447,7 @@ export async function capturePublicSnapshot(binding: D1Database) {
       .from(core.state)
       .where(eq(core.state.id, 1)),
     ...queries,
+    ...sourceQueries,
   ]);
   const captured: Record<string, Row[]> = {};
   entries.forEach(([key, projection], index) => {
@@ -611,5 +638,10 @@ export async function capturePublicSnapshot(binding: D1Database) {
     },
     media: rows('media').filter((row) => usedMedia.has(row.id)),
   };
-  return publicSnapshotSchema.parse(result);
+  return {
+    snapshot: publicSnapshotSchema.parse(result),
+    mediaSources: (
+      (results[entries.length] ?? []) as { id: number; r2Key: string }[]
+    ).filter((row) => usedMedia.has(row.id)),
+  };
 }

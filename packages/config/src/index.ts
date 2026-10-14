@@ -157,7 +157,7 @@ export async function boundedJson(
   ) as unknown;
 }
 export async function boundedBytes(
-  request: Request,
+  request: Pick<Request, 'headers' | 'body'>,
   maxBytes: number,
 ): Promise<Uint8Array<ArrayBuffer>> {
   if (Number(request.headers.get('content-length')) > maxBytes)
