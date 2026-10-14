@@ -16,21 +16,23 @@ interface Props {
   snapshot: PublicSnapshot;
   locale: Locale;
   path: string;
+  notFound?: boolean;
 }
-const { snapshot, locale, path } = Astro.props;
+const { snapshot, locale, path, notFound = false } = Astro.props;
 const copy = resolveTranslation(snapshot.siteCopy, locale);
 const text = copy.values;
 const meta = pageMetadata(snapshot, locale, path);
-const socialImage = meta.socialMediaId
-  ? (await mediaManifest(snapshot)).images[meta.socialMediaId]?.social
-  : null;
+const socialImage =
+  !notFound && meta.socialMediaId
+    ? (await mediaManifest(snapshot)).images[meta.socialMediaId]?.social
+    : null;
 const socialMetadata = snapshot.media.find(
   (item) => item.id === meta.socialMediaId,
 );
 const socialText = socialMetadata
   ? resolveTranslation(socialMetadata.translations, locale)
   : null;
-if (meta.socialMediaId && !socialImage)
+if (!notFound && meta.socialMediaId && !socialImage)
   throw new Error('Social image must be an eligible image');
 const footer = snapshot.siteSettings.translations.length
   ? resolveTranslation(snapshot.siteSettings.translations, locale)
@@ -48,46 +50,65 @@ const localPath = (language: Locale, value = '') =>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    {buildConfig.SITE_MODE === 'preview' && (
+    {(notFound || buildConfig.SITE_MODE === 'preview') && (
       <meta name="robots" content="noindex, nofollow" />
     )}
-    <title>{meta.title}</title>
-    <meta name="description" content={meta.description} />
-    <link rel="canonical" href={meta.url} />
-    {locales.map((language) => (
-      <link
-        rel="alternate"
-        hreflang={language}
-        href={absoluteUrl(localPath(language, path))}
-      />
-    ))}
-    <link
-      rel="alternate"
-      hreflang="x-default"
-      href={absoluteUrl(localPath('en', path))}
+    <title>{notFound ? `${text.notFoundHeading} — ${snapshot.siteSettings.brandName}` : meta.title}</title>
+    <meta
+      name="description"
+      content={notFound ? text.notFoundBody : meta.description}
     />
-    <meta property="og:type" content={meta.isProject ? 'article' : 'website'} />
-    <meta property="og:title" content={meta.title} />
-    <meta property="og:description" content={meta.description} />
-    <meta property="og:url" content={meta.url} />
-    <meta property="og:site_name" content={snapshot.siteSettings.brandName} />
-    {socialImage && socialText && (
+    {!notFound && (
       <>
-        <meta property="og:image" content={absoluteUrl(socialImage.url)} />
-        <meta property="og:image:type" content="image/jpeg" />
-        <meta property="og:image:width" content={String(socialImage.width)} />
-        <meta property="og:image:height" content={String(socialImage.height)} />
-        <meta property="og:image:alt" content={socialText.altText} />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content={absoluteUrl(socialImage.url)} />
-        <meta name="twitter:image:alt" content={socialText.altText} />
+        <link rel="canonical" href={meta.url} />
+        {locales.map((language) => (
+          <link
+            rel="alternate"
+            hreflang={language}
+            href={absoluteUrl(localPath(language, path))}
+          />
+        ))}
+        <link
+          rel="alternate"
+          hreflang="x-default"
+          href={absoluteUrl(localPath('en', path))}
+        />
+        <meta
+          property="og:type"
+          content={meta.isProject ? 'article' : 'website'}
+        />
+        <meta property="og:title" content={meta.title} />
+        <meta property="og:description" content={meta.description} />
+        <meta property="og:url" content={meta.url} />
+        <meta
+          property="og:site_name"
+          content={snapshot.siteSettings.brandName}
+        />
+        {socialImage && socialText && (
+          <>
+            <meta property="og:image" content={absoluteUrl(socialImage.url)} />
+            <meta property="og:image:type" content="image/jpeg" />
+            <meta
+              property="og:image:width"
+              content={String(socialImage.width)}
+            />
+            <meta
+              property="og:image:height"
+              content={String(socialImage.height)}
+            />
+            <meta property="og:image:alt" content={socialText.altText} />
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:image" content={absoluteUrl(socialImage.url)} />
+            <meta name="twitter:image:alt" content={socialText.altText} />
+          </>
+        )}
+        <meta
+          property="og:locale"
+          content={{ en: 'en_US', fr: 'fr_FR', ar: 'ar_DZ' }[locale]}
+        />
+        <script is:inline type="application/ld+json" set:html={meta.jsonLd} />
       </>
     )}
-    <meta
-      property="og:locale"
-      content={{ en: 'en_US', fr: 'fr_FR', ar: 'ar_DZ' }[locale]}
-    />
-    <script is:inline type="application/ld+json" set:html={meta.jsonLd} />
   </head>
   <body>
     <a
@@ -109,7 +130,7 @@ const localPath = (language: Locale, value = '') =>
           return (
             <a
               href={localPath(locale, itemPath)}
-              aria-current={itemPath === path ? 'page' : undefined}
+              aria-current={!notFound && itemPath === path ? 'page' : undefined}
               lang={label.locale}
               dir={direction(label.locale)}
             >
@@ -121,7 +142,7 @@ const localPath = (language: Locale, value = '') =>
       <nav class="locale-nav" aria-label={text.languageNavigation}>
         {locales.map((language) => (
           <a
-            href={localPath(language, path)}
+            href={localPath(language, notFound ? '' : path)}
             lang={language}
             hreflang={language}
             aria-current={language === locale ? 'true' : undefined}

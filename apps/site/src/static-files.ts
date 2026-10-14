@@ -1,4 +1,4 @@
-import { writeFile, readdir } from 'node:fs/promises';
+import { writeFile, readdir, rename } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
@@ -53,6 +53,15 @@ export function staticFiles(): AstroIntegration {
         const snapshot = await readSnapshot();
         const redirects: string[] = [];
         if (snapshot.schemaVersion === 2) {
+          // This dynamic Astro route emits directory indexes. Workers Static
+          // Assets resolves the nearest 404.html, including locale subpaths.
+          for (const locale of locales) {
+            const prefix = locale === 'en' ? '' : `${locale}/`;
+            await rename(
+              new URL(`${prefix}404/index.html`, dir),
+              new URL(`${prefix}404.html`, dir),
+            );
+          }
           const manifest = await readStaticMedia(
             snapshot,
             mediaDirectory(snapshot),

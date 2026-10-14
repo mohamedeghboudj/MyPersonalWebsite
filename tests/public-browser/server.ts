@@ -58,15 +58,31 @@ const server = createServer((request, response) => {
   }
   const pathname = new URL(request.url ?? '/', 'http://127.0.0.1:4322')
     .pathname;
-  const asset = files.get(pathname);
+  let asset = files.get(pathname);
+  const status = asset ? 200 : 404;
+  // Match Workers Static Assets' nearest 404.html fallback. Routing is also
+  // checked against Wrangler locally; this host is for browser assertions.
+  if (!asset) {
+    let directory = pathname.slice(0, pathname.lastIndexOf('/') + 1);
+    while (!asset) {
+      asset = files.get(`${directory}404.html`);
+      if (directory === '/') break;
+      directory = directory.slice(
+        0,
+        directory.slice(0, -1).lastIndexOf('/') + 1,
+      );
+    }
+  }
   if (!asset) {
     response.writeHead(404).end();
     return;
   }
-  response.writeHead(200, {
+  response.writeHead(status, {
     ...publicDocumentHeaders,
     'Content-Type': asset.type,
-    ...(pathname.startsWith('/documents/') ? publicAttachmentHeaders : {}),
+    ...(status === 200 && pathname.startsWith('/documents/')
+      ? publicAttachmentHeaders
+      : {}),
     'Cache-Control': 'no-store',
   });
   response.end(request.method === 'HEAD' ? undefined : asset.body);
