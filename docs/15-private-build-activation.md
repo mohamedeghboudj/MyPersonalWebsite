@@ -1,6 +1,6 @@
 # Private captured build — activation handoff
 
-The implementation is reviewable in draft PR #9. It validates a captured input, EN/FR/AR CVs and the static site; it does not deploy or provide a browser-accessible private preview yet. Keep the complete Phase 3 PR in draft until the remaining publishing work is finished. This document prepares the account steps without asking for a premature merge or launch.
+The implementation is reviewable in draft PR #9. It validates a captured input, EN/FR/AR CVs and the static site, and packages preview captures for the new Access guard. It does not deploy or provide a live browser-accessible private preview yet. [The private preview review](16-private-preview.md) records the implemented guard and the remaining deployment coordinator. Keep the complete Phase 3 PR in draft until the remaining publishing work is finished. This document prepares the account steps without asking for a premature merge or launch.
 
 The owner's original project instructions reserve interactive login and account changes to the owner. Credential creation and secret entry therefore need the owner's terminal/dashboard. Never send their values in chat or put them in a tracked file. The existing spike deployment token has no R2 or GitHub Actions permissions and should not be broadened.
 

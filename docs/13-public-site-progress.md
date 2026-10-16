@@ -36,6 +36,8 @@ Missing routes now use EN/FR/AR error pages with the same navigation, footer and
 
 ## Preview
 
+The separate private-preview guard and verified bundle path are now implemented; [the private preview review](16-private-preview.md) records their authentication, file checks and read-only active-version comparison. Automatic deployment, its durable ordering coordinator and live Access activation remain pending. The local layout preview below continues to use synthetic content.
+
 From the repository root in this Windows workspace:
 
 ```powershell

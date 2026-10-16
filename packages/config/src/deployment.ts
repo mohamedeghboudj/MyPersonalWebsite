@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { publishCapturePolicy } from './publishing.ts';
+import { previewPolicy } from './preview.ts';
 
 export const environmentNames = ['local', 'preview', 'production'] as const;
 const identifier = z.string().regex(/^[a-z][a-z0-9-]{0,62}$/u);
@@ -131,7 +132,24 @@ export function createWranglerConfigs(
       d1_databases: [d1('INBOX', env.inbox)],
       triggers: { crons: ['15 3 * * *'] },
     },
-    site: { ...common, name: env.site.name, assets: { directory: './dist' } },
+    site:
+      name === 'preview'
+        ? {
+            ...common,
+            name: env.site.name,
+            main: 'src/index.ts',
+            assets: {
+              directory: '../../artifacts/private-preview/site',
+              binding: 'ASSETS',
+              run_worker_first: true,
+              not_found_handling: '404-page',
+            },
+            vars: {
+              APP_ENV: 'preview',
+              PREVIEW_RELEASE: previewPolicy.bootstrap,
+            },
+          }
+        : { ...common, name: env.site.name, assets: { directory: './dist' } },
   };
 }
 export function assertRemoteResourcesConfigured(

@@ -6,6 +6,7 @@ for (const directory of [
   'artifacts/captured-input',
   'artifacts/captured-cv',
   'artifacts/captured-logs',
+  'artifacts/private-preview',
   'artifacts/public-media',
   'apps/site/dist',
   'apps/site/.astro',

@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { readCapturedInput } from './captured-input.ts';
+import { previewPolicy } from '@platform/config';
 
 export function privateBuildEnvironment(
   source: NodeJS.ProcessEnv = process.env,
@@ -85,6 +86,7 @@ export async function buildCapturedInput(
     SITE_MEDIA_SOURCE_DIR: resolve(inputDirectory, 'media'),
     SITE_CV_OUTPUT_DIR: resolve(cvDirectory),
     SITE_MODE: 'preview',
+    SITE_ORIGIN: previewPolicy.origin,
   };
   for (const [stage, args, cwd] of [
     ['cv-prepare', [resolve('scripts/prepare-cv.ts')], resolve('.')],

@@ -9,6 +9,7 @@ import { sealPublishInput } from './publish-input.ts';
 import { fetchCapturedInput } from './captured-input.ts';
 import { buildCapturedInput } from './private-build.ts';
 import { publishCapturePolicy } from '@platform/config';
+import { preparePreviewBundle, verifyPreviewBundle } from './preview-bundle.ts';
 
 const directory = resolve('artifacts/public-cv-proof');
 if (process.argv[2] === 'prepare') {
@@ -65,6 +66,17 @@ if (process.argv[2] === 'prepare') {
     resolve(directory, 'cv'),
     resolve(directory, 'private-logs'),
   );
+  const bundle = await preparePreviewBundle(
+    inputDirectory,
+    resolve(directory, 'cv'),
+    resolve('apps/site/dist'),
+    resolve(directory, 'private-preview'),
+  );
+  const verified = await verifyPreviewBundle(
+    resolve(directory, 'private-preview'),
+  );
+  if (verified.release.bundleSha256 !== bundle.release.bundleSha256)
+    throw new Error('Synthetic private preview bundle mismatch');
   console.log('Synthetic immutable capture completed the private build path.');
 } else if (process.argv[2] === 'verify') {
   const snapshot = publicSnapshotSchema.parse(

@@ -1,6 +1,6 @@
 # Phase 3 — private publishing inputs
 
-The publishing backend captures a consistent revision into private R2 storage and can request a GitHub build of that exact input. This increment validates the build without deploying it. Capture readiness, workflow state and the version currently live remain separate.
+The publishing backend captures a consistent revision into private R2 storage and can request a GitHub build of that exact input. Preview builds now produce a verified static package for an owner-only Access guard; automatic activation remains unimplemented. Capture readiness, workflow state and the version currently live remain separate. See [the private preview review](16-private-preview.md) for packaging, authentication and deployment-preflight boundaries.
 
 ## Contract and authentication
 
@@ -75,5 +75,5 @@ This increment changes no page layout or motion. The approved reference comparis
 
 - Activate and prove the implemented dispatch/R2-reader connection in the isolated preview environment after credential setup and review. A successful synthetic proof does not establish live credentials or Access policy.
 - Activate scheduled capture cleanup in preview and confirm live invocations. Add private diagnostics retrieval and serialized deployment with an explicit monotonic sequence check. GitHub concurrency alone is not a request-order guarantee.
-- Provide private preview behind Access and console preview/publish controls once those actions perform the complete operation.
+- Activate the implemented private-preview guard after completing the deployment coordinator, then connect console preview/publish controls once those actions perform the complete operation.
 - Prove save-to-live on the isolated preview environment and measure the real latency again. Production and domain cutover remain separate.

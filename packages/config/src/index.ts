@@ -1,4 +1,11 @@
 import { z } from 'zod';
+import { accessIdentityEnvSchema } from './access.ts';
+export {
+  verifyAccess,
+  accessIdentityEnvSchema,
+  type VerifyAccess,
+} from './access.ts';
+export * from './preview.ts';
 export {
   publishCapturePolicy,
   publishing,
@@ -39,18 +46,11 @@ export const siteBuildEnvSchema = z
         message: 'Production canonical URLs require HTTPS',
       });
   });
-export const adminEnvSchema = z
-  .object({
+export const adminEnvSchema = accessIdentityEnvSchema
+  .extend({
     APP_ENV: z
       .enum(['local', 'spike', 'preview', 'production'])
       .default('spike'),
-    ACCESS_ISSUER: z
-      .url()
-      .refine((value) =>
-        /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/u.test(value),
-      ),
-    ACCESS_AUDIENCE: z.string().min(16),
-    OWNER_EMAIL: z.email(),
     ADMIN_ORIGIN: origin,
     PUBLIC_ORIGIN: origin.optional(),
   })

@@ -25,6 +25,7 @@
     "packages/**/*.ts",
     "database/**/*.ts",
     "apps/admin/**/*.ts",
+    "apps/preview/**/*.ts",
     "worker/**/*.ts",
     "tests/**/*.ts",
     "scripts/**/*.ts",
