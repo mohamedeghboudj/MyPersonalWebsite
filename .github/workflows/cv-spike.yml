@@ -41,18 +41,7 @@ jobs:
       - run: pnpm cv:prepare
       - run: pnpm cv:compile
       - run: node scripts/public-cv-proof.ts prepare
-      - run: pnpm cv:prepare
-        env:
-          CV_SNAPSHOT_PATH: ${{ github.workspace }}/artifacts/public-cv-proof/snapshot.json
-          CV_OUTPUT_DIR: ${{ github.workspace }}/artifacts/public-cv-proof/cv
-      - run: pnpm cv:compile
-        env:
-          CV_OUTPUT_DIR: ${{ github.workspace }}/artifacts/public-cv-proof/cv
-      - run: pnpm --filter @platform/site build
-        env:
-          SITE_SNAPSHOT_PATH: ${{ github.workspace }}/artifacts/public-cv-proof/snapshot.json
-          SITE_CV_OUTPUT_DIR: ${{ github.workspace }}/artifacts/public-cv-proof/cv
-          SITE_MODE: preview
+      - run: node scripts/public-cv-proof.ts build-capture
       - run: node scripts/public-cv-proof.ts verify
       # Synthetic spike payloads only. Never reuse this public artifact step for
       # an owner's private company/role variants or unpublished content.

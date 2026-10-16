@@ -2,3 +2,7 @@ ACCESS_ISSUER=https://YOUR-TEAM.cloudflareaccess.com
 ACCESS_AUDIENCE=REPLACE_WITH_APPLICATION_AUDIENCE
 OWNER_EMAIL=owner@example.com
 ADMIN_ORIGIN=http://localhost:8787
+# Private builds stay disabled by default. See docs/15-private-build-activation.md.
+# APP_ENV=local
+# PUBLISH_BUILDS_ENABLED=true
+# PUBLISH_GITHUB_TOKEN=ENTER_ONLY_IN_GITIGNORED_DEV_VARS

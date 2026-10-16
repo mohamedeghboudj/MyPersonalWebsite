@@ -24,6 +24,7 @@ import { createContentRoutes } from './content-routes.ts';
 import { hasFreshLogin } from './fresh-auth.ts';
 import { mediaRoutes } from './media-routes.ts';
 import { createPublishingRoutes } from './publishing-routes.ts';
+import type { GitHubFetch } from './github-builds.ts';
 
 type Bindings = {
   ASSETS?: Fetcher;
@@ -34,10 +35,13 @@ type Bindings = {
   ACCESS_AUDIENCE: string;
   OWNER_EMAIL: string;
   ADMIN_ORIGIN: string;
+  PUBLISH_BUILDS_ENABLED?: string;
+  PUBLISH_GITHUB_TOKEN?: string;
 };
 export function createAdmin(
   verify: VerifyAccess = verifyAccess,
   freshLogin = hasFreshLogin,
+  githubFetch: GitHubFetch = fetch,
 ) {
   const app = new Hono<AdminEnvironment>();
   app.use('*', async (c, next) => {
@@ -200,7 +204,7 @@ export function createAdmin(
       return c.json({ saved: true });
     })
     .route('/api/media', mediaRoutes)
-    .route('/api/publishing', createPublishingRoutes(freshLogin))
+    .route('/api/publishing', createPublishingRoutes(freshLogin, githubFetch))
     .route('/api/content', createContentRoutes(freshLogin))
     .get('*', async (c) => {
       if (c.req.path.startsWith('/api/'))

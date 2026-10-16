@@ -15,9 +15,50 @@ import {
 import { requireRecentLogin } from './recent-login.ts';
 import { hasFreshLogin } from './fresh-auth.ts';
 import type { AdminEnvironment } from './index.ts';
+import { requestCapturedBuild, capturedBuildStatus } from './build-dispatch.ts';
+import { BuildServiceError, type GitHubFetch } from './github-builds.ts';
 
-export function createPublishingRoutes(freshLogin = hasFreshLogin) {
+export function createPublishingRoutes(
+  freshLogin = hasFreshLogin,
+  githubFetch: GitHubFetch = fetch,
+) {
   return new Hono<AdminEnvironment>()
+    .post('/captures/:id/build', async (c) => {
+      z.object({})
+        .strict()
+        .parse(await boundedJson(c.req.raw, 1024));
+      // Only the captured ID identifies the request; a caller cannot replace
+      // its hash, destination, branch, workflow or payload with a request body.
+      const rejected = await requireRecentLogin(
+        c,
+        freshLogin,
+        'Sign in again before requesting a private build.',
+      );
+      if (rejected) return rejected;
+      const dispatch = await requestCapturedBuild(
+        c.env.CONTENT,
+        c.env,
+        c.req.param('id'),
+        c.get('actor'),
+        githubFetch,
+      );
+      return c.json(
+        { dispatch },
+        dispatch.status === 'queued' || dispatch.status === 'rejected'
+          ? 200
+          : 202,
+      );
+    })
+    .get('/captures/:id/build', async (c) =>
+      c.json(
+        await capturedBuildStatus(
+          c.env.CONTENT,
+          c.env,
+          c.req.param('id'),
+          githubFetch,
+        ),
+      ),
+    )
     .get('/captures', async (c) =>
       c.json({ captures: await listPublishCaptures(c.env.CONTENT) }),
     )
@@ -72,6 +113,8 @@ export function createPublishingRoutes(freshLogin = hasFreshLogin) {
       return c.body(input.body);
     })
     .onError((error, c) => {
+      if (error instanceof BuildServiceError)
+        return c.json({ error: error.message }, 503);
       if (error instanceof PublishCaptureError)
         return c.json({ error: error.message }, error.status);
       if (
@@ -85,7 +128,7 @@ export function createPublishingRoutes(freshLogin = hasFreshLogin) {
       return c.json(
         {
           error:
-            'Private capture storage is temporarily unavailable. Retry the same request.',
+            'Publishing is temporarily unavailable. Retry the same request.',
         },
         503,
       );

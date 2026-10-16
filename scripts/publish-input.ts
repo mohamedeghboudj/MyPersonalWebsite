@@ -42,7 +42,7 @@ export async function materializePublishInput(
 ) {
   const input = verifyPublishInput(body, expectedSha256);
   const root = resolve(destination);
-  await mkdir(root);
+  await mkdir(root, { mode: 0o700 });
   const sourceDirectory = resolve(root, 'media');
   await mkdir(sourceDirectory);
   const sources = new Map(

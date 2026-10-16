@@ -5,6 +5,10 @@ import { publicSnapshotSchema } from '@platform/schema';
 import { localDatabase, migrateTestDatabase } from './local-database.ts';
 import { publicCvFixture } from '../tests/fixtures/public-cv.ts';
 import { verifyPublicCvs, cvDigest } from './cv-artifacts.ts';
+import { sealPublishInput } from './publish-input.ts';
+import { fetchCapturedInput } from './captured-input.ts';
+import { buildCapturedInput } from './private-build.ts';
+import { publishCapturePolicy } from '@platform/config';
 
 const directory = resolve('artifacts/public-cv-proof');
 if (process.argv[2] === 'prepare') {
@@ -23,6 +27,45 @@ if (process.argv[2] === 'prepare') {
   } finally {
     await local.runtime.dispose();
   }
+} else if (process.argv[2] === 'build-capture') {
+  const snapshot = publicSnapshotSchema.parse(
+    JSON.parse(await readFile(resolve(directory, 'snapshot.json'), 'utf8')),
+  );
+  const sealed = sealPublishInput({
+    schemaVersion: 1,
+    snapshot,
+    mediaSources: [],
+  });
+  const id = crypto.randomUUID();
+  const inputDirectory = resolve(directory, 'captured-input');
+  await fetchCapturedInput(
+    {
+      schemaVersion: 1,
+      id,
+      purpose: 'preview',
+      sequence: 1,
+      revision: snapshot.revision,
+      inputSha256: sealed.sha256,
+      snapshotSha256: cvDigest(JSON.stringify(snapshot)),
+      byteSize: sealed.body.length,
+      createdAt: snapshot.generatedAt,
+      expiresAt: new Date(
+        Date.parse(snapshot.generatedAt) + publishCapturePolicy.retentionMs,
+      ).toISOString(),
+    },
+    async (key) => {
+      if (key !== `publish-inputs/${id}.json`)
+        throw new Error('Unexpected synthetic storage read');
+      return new Response(sealed.body).body;
+    },
+    inputDirectory,
+  );
+  await buildCapturedInput(
+    inputDirectory,
+    resolve(directory, 'cv'),
+    resolve(directory, 'private-logs'),
+  );
+  console.log('Synthetic immutable capture completed the private build path.');
 } else if (process.argv[2] === 'verify') {
   const snapshot = publicSnapshotSchema.parse(
     JSON.parse(await readFile(resolve(directory, 'snapshot.json'), 'utf8')),
@@ -52,4 +95,4 @@ if (process.argv[2] === 'prepare') {
   console.log(
     'All three public CV links and deployed PDF bytes match the exact site snapshot. Visual inspection remains required.',
   );
-} else throw new Error('Use prepare or verify');
+} else throw new Error('Use prepare, build-capture or verify');

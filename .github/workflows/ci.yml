@@ -3,10 +3,17 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      concurrency_key:
+        description: Isolate checks for an immutable captured build
+        required: false
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
-  group: checks-${{ github.ref }}
+  group: checks-${{ github.workflow }}-${{ inputs.concurrency_key || github.ref }}
   cancel-in-progress: true
 jobs:
   checks:
