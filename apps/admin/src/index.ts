@@ -25,6 +25,7 @@ import { hasFreshLogin } from './fresh-auth.ts';
 import { mediaRoutes } from './media-routes.ts';
 import { createPublishingRoutes } from './publishing-routes.ts';
 import type { GitHubFetch } from './github-builds.ts';
+import { scheduledCaptureMaintenance } from './capture-maintenance.ts';
 
 type Bindings = {
   ASSETS?: Fetcher;
@@ -37,6 +38,8 @@ type Bindings = {
   ADMIN_ORIGIN: string;
   PUBLISH_BUILDS_ENABLED?: string;
   PUBLISH_GITHUB_TOKEN?: string;
+  APP_ENV?: string;
+  PUBLISH_MAINTENANCE_ENABLED?: string;
 };
 export function createAdmin(
   verify: VerifyAccess = verifyAccess,
@@ -239,4 +242,8 @@ export type AdminEnvironment = {
   Bindings: Bindings;
   Variables: { actor: string };
 };
-export default createAdmin();
+const app = createAdmin();
+export default {
+  fetch: app.fetch,
+  scheduled: scheduledCaptureMaintenance,
+};

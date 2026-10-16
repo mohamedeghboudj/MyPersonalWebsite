@@ -4,6 +4,7 @@ export {
   publishing,
   publishingEnvSchema,
   publishStorageEnvSchema,
+  publishMaintenanceEnvSchema,
 } from './publishing.ts';
 
 const origin = z

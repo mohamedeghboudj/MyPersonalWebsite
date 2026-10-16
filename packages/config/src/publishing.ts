@@ -5,6 +5,8 @@ export const publishCapturePolicy = {
   retentionMs: 24 * 60 * 60 * 1000,
   interruptedAfterMs: 5 * 60 * 1000,
   cleanupBatchSize: 5,
+  cleanupCron: '17 * * * *',
+  reconcilePageSize: 20,
 } as const;
 
 export const publishing = {
@@ -25,6 +27,10 @@ export const publishingEnvSchema = z.object({
   APP_ENV: z.enum(['local', 'preview']),
   PUBLISH_BUILDS_ENABLED: z.literal('true'),
   PUBLISH_GITHUB_TOKEN: secret,
+});
+export const publishMaintenanceEnvSchema = z.object({
+  APP_ENV: z.enum(['local', 'preview']),
+  PUBLISH_MAINTENANCE_ENABLED: z.literal('true'),
 });
 export const publishStorageEnvSchema = z.object({
   PUBLISH_R2_ACCOUNT_ID: z.string().regex(/^[a-f0-9]{32}$/u),

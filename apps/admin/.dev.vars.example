@@ -6,3 +6,5 @@ ADMIN_ORIGIN=http://localhost:8787
 # APP_ENV=local
 # PUBLISH_BUILDS_ENABLED=true
 # PUBLISH_GITHUB_TOKEN=ENTER_ONLY_IN_GITIGNORED_DEV_VARS
+# After local migration 0011, opt into hourly private-input cleanup:
+# PUBLISH_MAINTENANCE_ENABLED=true

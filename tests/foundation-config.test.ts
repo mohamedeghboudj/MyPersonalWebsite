@@ -13,6 +13,7 @@ import {
   adminEnvSchema,
   contactEnvSchema,
   dummyTurnstile,
+  publishCapturePolicy,
 } from '@platform/config';
 
 it('isolates all six databases and keeps contact and public bindings minimal', () => {
@@ -34,6 +35,9 @@ it('isolates all six databases and keeps contact and public bindings minimal', (
     expect(config.admin.assets.run_worker_first).toBe(true);
     expect(config.admin.preview_urls).toBe(false);
     expect(config.admin.workers_dev).toBe(false);
+    expect(config.admin.triggers?.crons).toEqual(
+      name === 'production' ? undefined : [publishCapturePolicy.cleanupCron],
+    );
   }
   const invalid = structuredClone(validated);
   invalid.preview.inbox.id = invalid.production.content.id;
@@ -98,8 +102,9 @@ it('serves strict separate document policies and detects generated header drift'
   );
   const admin = JSON.parse(
     await readFile('apps/admin/wrangler.json', 'utf8'),
-  ) as { assets: { run_worker_first: boolean } };
+  ) as { assets: { run_worker_first: boolean }; triggers: { crons: string[] } };
   expect(admin.assets.run_worker_first).toBe(true);
+  expect(admin.triggers.crons).toEqual([publishCapturePolicy.cleanupCron]);
 });
 
 it('keeps text and focus token colors legible on both foundation surfaces', async () => {

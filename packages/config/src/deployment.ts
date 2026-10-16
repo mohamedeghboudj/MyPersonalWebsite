@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { publishCapturePolicy } from './publishing.ts';
 
 export const environmentNames = ['local', 'preview', 'production'] as const;
 const identifier = z.string().regex(/^[a-z][a-z0-9-]{0,62}$/u);
@@ -98,6 +99,9 @@ export function createWranglerConfigs(
       ...common,
       name: env.admin.name,
       main: 'src/index.ts',
+      ...(name !== 'production'
+        ? { triggers: { crons: [publishCapturePolicy.cleanupCron] } }
+        : {}),
       assets: {
         directory: './dist',
         binding: 'ASSETS',
