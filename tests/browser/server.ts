@@ -15,7 +15,7 @@ const local = await localDatabase();
 await migrateTestDatabase(local.content, local.inbox);
 const origin = 'http://127.0.0.1:4173';
 const assetRoot = resolve('apps/admin/dist');
-const publisher = syntheticPublisher();
+const publisher = syntheticPublisher(local.media);
 const admin = createAdmin(
   async () => ({ sub: 'test-owner', email: 'owner@example.com' }),
   async () => true,

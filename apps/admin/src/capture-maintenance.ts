@@ -4,7 +4,10 @@ import {
   markPublishCapturesExpired,
   readCaptureCleanup,
 } from '@platform/database';
-import { publishCaptureRequestSchema } from '@platform/schema';
+import {
+  publishCaptureRequestSchema,
+  diagnosticCaptureId,
+} from '@platform/schema';
 import {
   publishCapturePolicy,
   publishMaintenanceEnvSchema,
@@ -13,6 +16,8 @@ import { expirePrivateCaptures } from './publish-captures.ts';
 
 const actor = 'system:publish-retention';
 function captureId(key: string) {
+  const diagnostic = diagnosticCaptureId(key);
+  if (diagnostic) return diagnostic;
   const match = /^publish-inputs\/([^/]+)\.json$/u.exec(key);
   if (!match) return null;
   const parsed = publishCaptureRequestSchema.shape.id.safeParse(match[1]);

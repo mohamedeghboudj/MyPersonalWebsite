@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { readFile } from 'node:fs/promises';
 
 async function open(page: Page) {
   await page.goto('/');
@@ -58,6 +59,63 @@ test('loads preview controls on demand and distinguishes build success from the 
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({
     path: 'artifacts/publishing-mobile.png',
+    fullPage: true,
+  });
+});
+test('reads and downloads a private report as escaped text, with an honest unavailable state', async ({
+  page,
+}) => {
+  await open(page);
+  await prepare(page);
+  await page.getByRole('button', { name: 'Start private build' }).click();
+  await page.route(
+    '**/api/publishing/captures/*/diagnostics',
+    (route) => route.fulfill({ status: 404, json: { error: 'No report' } }),
+    { times: 1 },
+  );
+  await page.getByRole('button', { name: 'Read private build report' }).click();
+  await expect(page.getByRole('status')).toContainText(
+    'No private report is available',
+  );
+  await page.getByRole('button', { name: 'Read private build report' }).click();
+  await page.locator('summary').filter({ hasText: 'cv-compile' }).click();
+  await expect(page.locator('.build-report')).toContainText(
+    '<script>window.reportExecuted = true</script>',
+  );
+  expect(
+    await page.evaluate(() => Object.hasOwn(window, 'reportExecuted')),
+  ).toBe(false);
+  const download = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Download private report' }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^build-report-[a-f0-9-]+\.json$/u);
+  expect(
+    JSON.parse(await readFile((await file.path())!, 'utf8')).logs[0].text,
+  ).toContain('Synthetic diagnostic only');
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({
+    path: 'artifacts/diagnostics-desktop.png',
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.getByLabel('cv-compile output').focus();
+  await page.keyboard.press('PageDown');
+  await expect
+    .poll(() =>
+      page
+        .getByLabel('cv-compile output')
+        .evaluate((element) => element.scrollTop),
+    )
+    .toBeGreaterThan(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({
+    path: 'artifacts/diagnostics-mobile.png',
     fullPage: true,
   });
 });

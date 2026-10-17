@@ -65,7 +65,7 @@ GitHub verified the final CV extension and pagination correction at commit `e570
 
 - Activate and prove authenticated GitHub dispatch and private R2 retrieval after implementation review and scoped credential setup. Their implementation and local/runtime tests are complete; live credentials are not yet proven.
 - Verify trilingual CV artifacts through the live authenticated publisher. The assembler, site integration and earlier synthetic compile/visual proof are complete; the updated TeX workflow exercises the captured-input driver. No previous snapshot's PDF is eligible. Final owner-content pagination is still required.
-- Activate and prove scheduled cleanup in preview. Private-preview controls are connected in `19`; add private diagnostics and the production publish action/order guarantees, then verify current-head CI for the complete pipeline.
+- Activate and prove scheduled cleanup in preview. Private-preview controls and reports are connected in `19`/`20`; add the production publish action/order guarantees, then verify current-head CI for the complete pipeline.
 - Finish remaining detail presentation, generated-image review, performance gates and the full save-to-live browser proof. Keep the contact form/inbox controls in Phase 4 and motion/3D in Phase 6.
 - Test current Chrome, Firefox and Safari, then real iPhone and mid-range Android devices. Chromium viewport checks are not real-device performance evidence.
 

@@ -5,6 +5,7 @@ export * from './public-snapshot.ts';
 export * from './publish-input.ts';
 export * from './publish-capture.ts';
 export * from './publish-build.ts';
+export * from './build-diagnostics.ts';
 export * from './preview-release.ts';
 export * from './preview-deployment.ts';
 export * from './site-copy.ts';

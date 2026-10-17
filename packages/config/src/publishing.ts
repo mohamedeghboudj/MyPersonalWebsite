@@ -38,3 +38,10 @@ export const publishStorageEnvSchema = z.object({
   PUBLISH_R2_ACCESS_KEY_ID: secret,
   PUBLISH_R2_SECRET_ACCESS_KEY: secret,
 });
+export const diagnosticsStorageEnvSchema = z.object({
+  PUBLISH_DIAGNOSTICS_ENABLED: z.literal('true'),
+  PUBLISH_R2_ACCOUNT_ID: publishStorageEnvSchema.shape.PUBLISH_R2_ACCOUNT_ID,
+  PUBLISH_R2_BUCKET: publishStorageEnvSchema.shape.PUBLISH_R2_BUCKET,
+  DIAGNOSTICS_R2_ACCESS_KEY_ID: secret,
+  DIAGNOSTICS_R2_SECRET_ACCESS_KEY: secret,
+});

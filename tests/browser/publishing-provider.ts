@@ -1,10 +1,14 @@
 // Synthetic provider transport for loopback browser tests only. It is outside
 // every Worker entry point and never sends a network request or compiles a CV.
-import { capturedBuildSchema } from '@platform/schema';
+import {
+  capturedBuildSchema,
+  buildDiagnosticsKey,
+  buildDiagnosticsSchema,
+} from '@platform/schema';
 import type { CapturedBuild, PreviewRelease } from '@platform/schema';
 import { previewPolicy } from '@platform/config';
 
-export function syntheticPublisher() {
+export function syntheticPublisher(bucket: Pick<R2Bucket, 'put'>) {
   const versions = new Map<
     string,
     { createdAt: string; release: PreviewRelease | null }
@@ -32,6 +36,7 @@ export function syntheticPublisher() {
       head_branch: 'main',
       path: '.github/workflows/build-capture.yml',
       event: 'workflow_dispatch',
+      run_attempt: 1,
       status: 'completed',
       conclusion: 'success',
     };
@@ -46,6 +51,31 @@ export function syntheticPublisher() {
         );
         const id = runs.size + 1;
         runs.set(id, capture);
+        const report = buildDiagnosticsSchema.parse({
+          schemaVersion: 1,
+          capture,
+          run: { runId: id, attempt: 1 },
+          createdAt: new Date().toISOString(),
+          outcomes: {
+            retrieval: 'success',
+            build: 'success',
+            package: 'success',
+            upload: 'success',
+          },
+          logs: [
+            {
+              stage: 'cv-compile',
+              text:
+                'Synthetic diagnostic only: <script>window.reportExecuted = true</script>\n' +
+                'long-compiler-line-'.repeat(60),
+              truncated: false,
+            },
+          ],
+        });
+        await bucket.put(
+          buildDiagnosticsKey(capture.id, report.run),
+          JSON.stringify(report),
+        );
         versions.set(crypto.randomUUID(), {
           createdAt: new Date().toISOString(),
           release: {

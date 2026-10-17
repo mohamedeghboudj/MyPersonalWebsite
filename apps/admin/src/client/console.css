@@ -20,6 +20,15 @@
   min-block-size: var(--target-min);
   padding-block: var(--space-2);
 }
+.build-report {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-inline-size: 100%;
+  max-block-size: calc(var(--space-32) * 3);
+  overflow: auto;
+  font-size: var(--text-caption);
+  font-family: var(--font-mono);
+}
 .session-menu summary {
   cursor: pointer;
   min-block-size: var(--target-min);

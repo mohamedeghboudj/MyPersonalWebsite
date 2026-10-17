@@ -36,8 +36,8 @@ export const publishCaptures = sqliteTable(
 );
 
 export class PublishCaptureError extends Error {
-  readonly status: 400 | 404 | 409 | 413 | 503;
-  constructor(message: string, status: 400 | 404 | 409 | 413 | 503) {
+  readonly status: 400 | 404 | 409 | 410 | 413 | 503;
+  constructor(message: string, status: 400 | 404 | 409 | 410 | 413 | 503) {
     super(message);
     this.status = status;
   }

@@ -380,6 +380,7 @@ describe('authenticated capture dispatch', () => {
       status: 'completed',
       conclusion: 'success',
       url: `https://github.com/${publishing.repository}/actions/runs/123`,
+      attempt: null,
     });
     await expect(
       capturedBuildStatus(local.content, env, id, async () =>

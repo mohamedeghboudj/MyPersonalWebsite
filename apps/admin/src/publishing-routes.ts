@@ -35,6 +35,7 @@ import {
 } from './preview-coordinator.ts';
 import { previewDeploymentProvider } from './preview-provider.ts';
 import type { PreviewFetch } from './preview-cloudflare.ts';
+import { readBuildDiagnostics } from './build-diagnostics.ts';
 
 export function createPublishingRoutes(
   freshLogin = hasFreshLogin,
@@ -42,6 +43,26 @@ export function createPublishingRoutes(
   cloudflareFetch: PreviewFetch = fetch,
 ) {
   return new Hono<AdminEnvironment>()
+    .get('/captures/:id/diagnostics', async (c) => {
+      if (!c.env.MEDIA)
+        return c.json(
+          { error: 'Private report storage is not configured.' },
+          503,
+        );
+      const report = await readBuildDiagnostics(
+        c.env.CONTENT,
+        c.env.MEDIA,
+        c.env,
+        c.req.param('id'),
+        githubFetch,
+      );
+      c.header(
+        'Content-Disposition',
+        `attachment; filename="build-report-${report.capture.id}.json"`,
+      );
+      c.header('Content-Security-Policy', "default-src 'none'; sandbox");
+      return c.json(report);
+    })
     .get('/preview', async (c) =>
       c.json({
         current: await previewDeploymentProvider(

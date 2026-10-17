@@ -5,6 +5,7 @@ import type {
   PublishCaptureSummary,
   PreviewCandidate,
   PreviewDeployment,
+  BuildDiagnostics,
 } from '@platform/schema';
 import { checked, client, ApiError } from './api';
 
@@ -50,6 +51,7 @@ export function Publishing({
   const [current, setCurrent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const [report, setReport] = useState<BuildDiagnostics | null>(null);
   const pending = useRef<PublishCaptureRequest | null>(null);
   const acting = useRef(false),
     generation = useRef(0),
@@ -94,6 +96,7 @@ export function Publishing({
     setDeployment(nextDeployment?.deployment ?? null);
     setCandidate(null);
     setCurrent(false);
+    setReport(null);
     if (nextDeployment?.deployment.status === 'deployed') {
       const active = await (await checked(await api.preview.$get())).json();
       if (generation.current === request)
@@ -165,6 +168,7 @@ export function Publishing({
     setDeployment(null);
     setCandidate(null);
     setCurrent(false);
+    setReport(null);
     setNotice(
       value.capture.status === 'ready'
         ? 'Saved content prepared. Start its private build when ready.'
@@ -225,6 +229,7 @@ export function Publishing({
               setDeployment(null);
               setCandidate(null);
               setCurrent(false);
+              setReport(null);
               if (id) void act(() => inspect(id));
             }}
           >
@@ -312,6 +317,73 @@ export function Publishing({
                       View build status
                     </a>
                   </p>
+                )}
+                {build.run?.status === 'completed' && !expired && (
+                  <button
+                    type="button"
+                    className="quiet"
+                    disabled={busy}
+                    onClick={() =>
+                      void act(async () => {
+                        const response = await api.captures[
+                          ':id'
+                        ].diagnostics.$get({ param: { id: selected } });
+                        if (response.status === 404) {
+                          setReport(null);
+                          setNotice(
+                            'No private report is available for this build attempt. It may not have been enabled or the job may have stopped before reporting.',
+                          );
+                          return;
+                        }
+                        const value = await (await checked(response)).json();
+                        if ('error' in value) throw new Error(value.error);
+                        setReport(value);
+                      })
+                    }
+                  >
+                    Read private build report
+                  </button>
+                )}
+                {report && (
+                  <div className="stack-compact">
+                    <p>
+                      Build report · attempt {report.run.attempt} ·{' '}
+                      {new Date(report.createdAt).toLocaleString()}
+                    </p>
+                    <p>
+                      Input: {report.outcomes.retrieval}. Build:{' '}
+                      {report.outcomes.build}. Package:{' '}
+                      {report.outcomes.package}. Upload:{' '}
+                      {report.outcomes.upload}.
+                    </p>
+                    {report.logs.length === 0 && (
+                      <p>No compiler output was captured.</p>
+                    )}
+                    {report.logs.map((log) => (
+                      <details className="relation" key={log.stage}>
+                        <summary>
+                          {log.stage}
+                          {log.truncated ? ' (last part only)' : ''}
+                        </summary>
+                        <pre
+                          className="build-report"
+                          tabIndex={0}
+                          aria-label={`${log.stage} output`}
+                        >
+                          {log.text}
+                        </pre>
+                      </details>
+                    ))}
+                    <p>
+                      <a
+                        href={api.captures[':id'].diagnostics
+                          .$url({ param: { id: selected } })
+                          .toString()}
+                      >
+                        Download private report
+                      </a>
+                    </p>
+                  </div>
                 )}
                 {['dispatching', 'uncertain'].includes(
                   build.dispatch.status,

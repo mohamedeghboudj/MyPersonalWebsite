@@ -66,6 +66,12 @@ const runSchema = z.object({
   head_branch: z.string(),
   path: z.string(),
   event: z.string(),
+  run_attempt: z
+    .number()
+    .int()
+    .positive()
+    .max(Number.MAX_SAFE_INTEGER)
+    .optional(),
   status: z.enum([
     'queued',
     'in_progress',
@@ -91,7 +97,10 @@ const runSchema = z.object({
 const belongsToCapture = (run: z.infer<typeof runSchema>, id: string) =>
   run.display_title === `Capture ${id}` &&
   run.head_branch === publishing.ref &&
-  run.path === `.github/workflows/${publishing.workflow}` &&
+  [
+    `.github/workflows/${publishing.workflow}`,
+    `.github/workflows/${publishing.workflow}@${publishing.ref}`,
+  ].includes(run.path) &&
   run.event === 'workflow_dispatch';
 
 export async function findDispatchedBuild(
@@ -145,6 +154,7 @@ export async function readGitHubBuild(
       status: run.status,
       conclusion: run.conclusion,
       url: buildRunUrl(runId),
+      attempt: run.run_attempt ?? null,
     };
   } catch {
     throw new BuildServiceError(

@@ -12,6 +12,7 @@ import {
   readPublishCapture,
 } from '@platform/database';
 import { publishCapturePolicy } from '@platform/config';
+import { buildDiagnosticsKey } from '@platform/schema';
 import {
   createPrivateCapture,
   expirePrivateCaptures,
@@ -51,6 +52,44 @@ function storage(overrides: Partial<Pick<R2Bucket, 'list' | 'delete'>>) {
 }
 
 describe('scheduled private-input retention', () => {
+  it('retains live diagnostic attempts, expires all exact report keys with the capture, and preserves unrelated objects', async () => {
+    const row = await capture();
+    const reports = [1, 2].map((attempt) =>
+      buildDiagnosticsKey(row.id, { runId: 123, attempt }),
+    );
+    const malformed = reports[0]!.replace('.123.', '.0123.');
+    for (const key of [...reports, malformed])
+      await local.media.put(key, 'PRIVATE synthetic report');
+    await maintainPrivateCaptures(
+      local.content,
+      local.media,
+      new Date(expired.getTime() - 1),
+    );
+    for (const key of reports)
+      expect(await local.media.head(key)).not.toBeNull();
+    await maintainPrivateCaptures(local.content, local.media, expired);
+    for (const key of reports) expect(await local.media.head(key)).toBeNull();
+    expect(await local.media.head(malformed)).not.toBeNull();
+    // A late report after the ledger was expired is removed on the next scan.
+    await local.media.put(reports[0]!, 'late report');
+    await maintainPrivateCaptures(local.content, local.media, expired);
+    expect(await local.media.head(reports[0]!)).toBeNull();
+  });
+  it('ages untracked reports for a full retention interval without trusting arbitrary names', async () => {
+    const key = buildDiagnosticsKey(crypto.randomUUID(), {
+      runId: 123,
+      attempt: 1,
+    });
+    await local.media.put(key, 'orphan report');
+    await maintainPrivateCaptures(local.content, local.media, new Date());
+    expect(await local.media.head(key)).not.toBeNull();
+    await maintainPrivateCaptures(
+      local.content,
+      local.media,
+      new Date(Date.now() + publishCapturePolicy.retentionMs + 1000),
+    );
+    expect(await local.media.head(key)).toBeNull();
+  });
   it('expires idle captures at the TTL, retains history and leaves content, inbox and originals alone', async () => {
     const rows = [];
     for (let i = 0; i < 6; i++) rows.push(await capture());

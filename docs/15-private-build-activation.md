@@ -37,7 +37,7 @@ These are integration steps for the later reviewed activation, not instructions 
 4. From an owner-authenticated, recently authenticated browser session, open **Website preview**, choose **Prepare saved content**, then **Start private build**. The controls use the captured ID; they cannot replace its branch, workflow, snapshot or hash.
 5. Poll `GET /api/publishing/captures/<id>/build`. A queued/completed run is a build result only. Verify actual R2 retrieval and all three compiler/site stages before recording this live connection as proven. When separately enabled, the upload step supplies an undeployed candidate; owner-authenticated activation and its extra prerequisites are described in `17-preview-activation.md`. This workflow never changes the active deployment.
 
-The private-preview controls are implemented in `19-preview-console.md`; after separate upload/activation setup they offer **Use this private preview**, verify its active version and expose its link. Production publishing and private diagnostics are still pending. No Access cookie or JWT extraction is required.
+The private-preview controls are implemented in `19-preview-console.md`; after separate upload/activation setup they offer **Use this private preview**, verify its active version and expose its link. Private reports are implemented in `20-private-build-diagnostics.md`; production publishing and live report activation remain pending. No Access cookie or JWT extraction is required.
 
 ## Recovery semantics
 

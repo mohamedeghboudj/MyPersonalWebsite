@@ -74,6 +74,6 @@ This increment changes no page layout or motion. The approved reference comparis
 ## Remaining connections
 
 - Activate and prove the implemented dispatch/R2-reader connection in the isolated preview environment after credential setup and review. A successful synthetic proof does not establish live credentials or Access policy.
-- Activate scheduled capture cleanup in preview and confirm live invocations. Add private diagnostics retrieval. The preview coordinator now enforces serialized activation and sequence checks; production coordination still needs its own integration.
+- Activate scheduled capture cleanup in preview and confirm live invocations. Private diagnostic retrieval is implemented in `20-private-build-diagnostics.md`; prove it live. The preview coordinator now enforces serialized activation and sequence checks; production coordination still needs its own integration.
 - Candidate discovery and private-preview controls are connected in `19`. Complete production publishing and prove the full operation live.
 - Prove save-to-live on the isolated preview environment and measure the real latency again. Production and domain cutover remain separate.

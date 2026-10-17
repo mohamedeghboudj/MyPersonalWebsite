@@ -30,7 +30,7 @@ Comparison returns `superseded` for an older capture and `already-active` for an
 
 These checks alone do **not** establish deployment ordering. The subsequent coordinator now supplies the durable intent/fence, atomic audit and lost-response reconciliation described in [the activation review](17-preview-activation.md). An unresolved attempt blocks a later activation until positively reconciled. GitHub concurrency alone is not FIFO and does not resolve an in-flight request after a runner failure. Activation stays disabled until explicitly configured; validation/packaging failures leave the existing deployment untouched.
 
-Candidate discovery and private-preview controls are now connected in `19-preview-console.md`. Next: owner-only diagnostics and production publishing, then the minimal guarded Worker and separate Access application for an isolated live proof. The owner's original instructions reserve Access/dashboard changes and interactive login to the owner. Domain/DNS cutover remains a later explicit step.
+Candidate discovery and private-preview controls are now connected in `19-preview-console.md`. Private reports follow in `20-private-build-diagnostics.md`. Next: production publishing, then the minimal guarded Worker and separate Access application for an isolated live proof. The owner's original instructions reserve Access/dashboard changes and interactive login to the owner. Domain/DNS cutover remains a later explicit step.
 
 ## Review and evidence
 
