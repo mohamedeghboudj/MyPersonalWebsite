@@ -1,6 +1,17 @@
 import { spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile, cp } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { locales } from '@platform/schema';
+import { cvBuildEnvSchema } from '@platform/config';
+import {
+  readPreparedCv,
+  sealCompiledCv,
+  verifyCvSectionPagination,
+} from './cv-artifacts.ts';
+
+const config = cvBuildEnvSchema.parse(process.env);
+const outputDirectory = resolve(config.CV_OUTPUT_DIR);
+for (const locale of locales) await readPreparedCv(outputDirectory, locale);
 
 // Maintained full TeX Live image; linux/amd64 digest from its published package.
 const image =
@@ -32,15 +43,15 @@ const measurements: {
   compileMs: number;
   bytes: number;
 }[] = [];
-for (const locale of ['en', 'fr', 'ar']) {
-  const directory = resolve(`artifacts/cv/${locale}`);
+for (const locale of locales) {
+  const directory = resolve(outputDirectory, locale);
   await mkdir(directory, { recursive: true });
   await cp('packages/cv-engine/fonts', `${directory}/fonts`, {
     recursive: true,
   });
   await writeFile(
     `${directory}/cv.tex`,
-    await readFile(`artifacts/cv/${locale}.tex`),
+    await readFile(resolve(outputDirectory, `${locale}.tex`)),
   );
   for (const pass of [1, 2]) {
     const started = performance.now();
@@ -113,9 +124,15 @@ for (const locale of ['en', 'fr', 'ar']) {
       bytes: pdf.length,
     });
   }
+  const sections = verifyCvSectionPagination(
+    await readFile(`${directory}/cv.tex`, 'utf8'),
+    await readFile(`${directory}/cv.aux`, 'utf8'),
+  );
+  console.log(`Verified ${sections} section/entry page pairs for ${locale}.`);
+  await sealCompiledCv(outputDirectory, locale);
 }
 await writeFile(
-  'artifacts/cv/measurements.json',
+  resolve(outputDirectory, 'measurements.json'),
   JSON.stringify(
     {
       image,

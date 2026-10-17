@@ -15,7 +15,7 @@ const workers = createWranglerConfigs(config, name);
 for (const [directory, worker] of [
   ['apps/admin', workers.admin],
   ['worker/contact', workers.contact],
-  ['apps/site', workers.site],
+  [name === 'preview' ? 'apps/preview' : 'apps/site', workers.site],
 ] as const)
   await writeFile(
     `${directory}/wrangler.${name}.json`,

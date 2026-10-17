@@ -13,12 +13,14 @@ import * as core from './tables.ts';
 import * as foundation from './foundation-tables.ts';
 import * as details from './content-details.ts';
 import * as mediaTables from './media.ts';
+import * as copyTables from './site-copy.ts';
 
 const tables: Record<string, SQLiteTable> = {
   ...core,
   ...foundation,
   ...details,
   ...mediaTables,
+  ...copyTables,
 };
 const table = (name: string) => {
   const found = tables[name];
@@ -577,17 +579,19 @@ export async function saveEditor(
         ),
       );
   }
-  statements.push(
-    prepare(
-      binding,
-      id === null
-        ? db.insert(target).values({ id: targetId, ...values })
-        : db
-            .update(target)
-            .set(values)
-            .where(eq(column(target, 'id'), targetId)),
-    ),
-  );
+  // A translation-only singleton has no mutable columns on its identity row.
+  if (id === null || Object.keys(values).length > 0)
+    statements.push(
+      prepare(
+        binding,
+        id === null
+          ? db.insert(target).values({ id: targetId, ...values })
+          : db
+              .update(target)
+              .set(values)
+              .where(eq(column(target, 'id'), targetId)),
+      ),
+    );
   statements.push(
     ...writeChildren(binding, module, data, targetId),
     ...(await auditStatements(

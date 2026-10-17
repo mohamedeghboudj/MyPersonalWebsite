@@ -11,6 +11,7 @@ import {
 } from '@platform/config';
 import {
   createSnapshot,
+  capturePublicSnapshot,
   capturePublishSource,
   saveEducation,
   saveProfile,
@@ -22,6 +23,10 @@ import { spikePage, spikeScript } from './spike.ts';
 import { createContentRoutes } from './content-routes.ts';
 import { hasFreshLogin } from './fresh-auth.ts';
 import { mediaRoutes } from './media-routes.ts';
+import { createPublishingRoutes } from './publishing-routes.ts';
+import type { GitHubFetch } from './github-builds.ts';
+import { scheduledCaptureMaintenance } from './capture-maintenance.ts';
+import type { PreviewFetch } from './preview-cloudflare.ts';
 
 type Bindings = {
   ASSETS?: Fetcher;
@@ -32,10 +37,20 @@ type Bindings = {
   ACCESS_AUDIENCE: string;
   OWNER_EMAIL: string;
   ADMIN_ORIGIN: string;
+  PUBLISH_BUILDS_ENABLED?: string;
+  PUBLISH_GITHUB_TOKEN?: string;
+  APP_ENV?: string;
+  PUBLISH_MAINTENANCE_ENABLED?: string;
+  PREVIEW_ACTIVATION_ENABLED?: string;
+  PREVIEW_ACCESS_AUDIENCE?: string;
+  PREVIEW_CLOUDFLARE_API_TOKEN?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
 };
 export function createAdmin(
   verify: VerifyAccess = verifyAccess,
   freshLogin = hasFreshLogin,
+  githubFetch: GitHubFetch = fetch,
+  cloudflareFetch: PreviewFetch = fetch,
 ) {
   const app = new Hono<AdminEnvironment>();
   app.use('*', async (c, next) => {
@@ -131,6 +146,18 @@ export function createAdmin(
         'Content-Type': 'application/json; charset=utf-8',
       });
     })
+    .get('/api/public-snapshot', async (c) => {
+      const body = JSON.stringify(await capturePublicSnapshot(c.env.CONTENT));
+      if (new TextEncoder().encode(body).byteLength > 2 * 1024 * 1024)
+        return c.json(
+          { error: 'Public snapshot exceeds the build input limit' },
+          413,
+        );
+      c.header('X-Snapshot-SHA256', await sha256(body));
+      return c.body(body, 200, {
+        'Content-Type': 'application/json; charset=utf-8',
+      });
+    })
     // Snapshot capture is the spike's manual handoff to the owner-run workflow.
     .post('/api/publish/capture', async (c) => {
       const { snapshot, savedAt } = await capturePublishSource(c.env.CONTENT);
@@ -186,6 +213,10 @@ export function createAdmin(
       return c.json({ saved: true });
     })
     .route('/api/media', mediaRoutes)
+    .route(
+      '/api/publishing',
+      createPublishingRoutes(freshLogin, githubFetch, cloudflareFetch),
+    )
     .route('/api/content', createContentRoutes(freshLogin))
     .get('*', async (c) => {
       if (c.req.path.startsWith('/api/'))
@@ -220,4 +251,8 @@ export type AdminEnvironment = {
   Bindings: Bindings;
   Variables: { actor: string };
 };
-export default createAdmin();
+const app = createAdmin();
+export default {
+  fetch: app.fetch,
+  scheduled: scheduledCaptureMaintenance,
+};

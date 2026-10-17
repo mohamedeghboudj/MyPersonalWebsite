@@ -15,6 +15,11 @@
 .session-menu {
   position: relative;
 }
+.relation > summary {
+  cursor: pointer;
+  min-block-size: var(--target-min);
+  padding-block: var(--space-2);
+}
 .session-menu summary {
   cursor: pointer;
   min-block-size: var(--target-min);

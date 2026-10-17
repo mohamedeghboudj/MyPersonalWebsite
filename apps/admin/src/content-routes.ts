@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { validator } from 'hono/validator';
 import { z } from 'zod';
-import { adminEnvSchema, boundedJson } from '@platform/config';
+import { boundedJson } from '@platform/config';
 import {
   editorDeleteSchema,
   editorRequestSchema,
@@ -21,6 +21,7 @@ import {
   cleanMedia,
 } from '@platform/database';
 import { hasFreshLogin } from './fresh-auth.ts';
+import { requireRecentLogin } from './recent-login.ts';
 import type { AdminEnvironment } from './index.ts';
 
 const idSchema = z.coerce.number().int().positive().max(2147483647);
@@ -62,33 +63,12 @@ export function createContentRoutes(freshLogin = hasFreshLogin) {
         (['POST', 'PUT'].includes(c.req.method) &&
           editorModule(c.req.path.split('/')[3] ?? '').sensitive)
       ) {
-        const config = adminEnvSchema.parse(c.env);
-        try {
-          if (
-            !(await freshLogin(
-              c.req.header('Cf-Access-Jwt-Assertion') ?? '',
-              config.ACCESS_ISSUER,
-              config.OWNER_EMAIL,
-            ))
-          )
-            return c.json(
-              {
-                error:
-                  'Sign in again before deleting content or changing site settings.',
-                reauthenticate: '/cdn-cgi/access/logout',
-              },
-              428,
-            );
-        } catch {
-          return c.json(
-            {
-              error:
-                'Access could not verify your recent login. Your content is unchanged. Sign in again, then retry. If it still fails, try again shortly.',
-              reauthenticate: '/cdn-cgi/access/logout',
-            },
-            503,
-          );
-        }
+        const rejected = await requireRecentLogin(
+          c,
+          freshLogin,
+          'Sign in again before deleting content or changing site settings.',
+        );
+        if (rejected) return rejected;
       }
       await next();
     })

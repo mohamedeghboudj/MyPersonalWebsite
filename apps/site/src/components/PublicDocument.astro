@@ -1,0 +1,32 @@
+---
+import type { Locale, PublicSnapshot } from '@platform/schema';
+import { resolveTranslation, direction } from '../lib/content';
+import { mediaManifest } from '../lib/media';
+import PublicMedia from './PublicMedia.astro';
+interface Props {
+  id: number | null;
+  snapshot: PublicSnapshot;
+  locale: Locale;
+}
+const { id, snapshot, locale } = Astro.props;
+const manifest = id ? await mediaManifest(snapshot) : null;
+const document = id ? manifest?.documents[id] : null;
+const metadata = snapshot.media.find((item) => item.id === id);
+const text = metadata
+  ? resolveTranslation(metadata.translations, locale)
+  : null;
+---
+
+{document && text ? (
+  <a
+    class="text-link"
+    href={document.url}
+    download="document.pdf"
+    lang={text.locale}
+    dir={direction(text.locale)}
+  >
+    {text.altText} <span aria-hidden="true">↓</span>
+  </a>
+) : (
+  id && <PublicMedia id={id} snapshot={snapshot} locale={locale} />
+)}

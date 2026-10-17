@@ -9,20 +9,43 @@ import {
   migrateTestDatabase,
 } from '../../scripts/local-database.ts';
 import { adminDocumentHeaders } from '@platform/config';
+import { syntheticPublisher } from './publishing-provider.ts';
 
 const local = await localDatabase();
 await migrateTestDatabase(local.content, local.inbox);
 const origin = 'http://127.0.0.1:4173';
 const assetRoot = resolve('apps/admin/dist');
+const publisher = syntheticPublisher();
 const admin = createAdmin(
   async () => ({ sub: 'test-owner', email: 'owner@example.com' }),
   async () => true,
+  publisher.github,
+  publisher.cloudflare,
 );
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', origin);
     if (req.headers.host !== '127.0.0.1:4173') {
       res.writeHead(403).end();
+      return;
+    }
+    if (url.pathname === '/__simulated-publishing') {
+      res.writeHead(200, {
+        ...adminDocumentHeaders,
+        'Content-Type': 'text/plain',
+      });
+      res.end(
+        'Local publishing simulation. No GitHub build, LaTeX compilation, Cloudflare upload or activation occurred.',
+      );
+      return;
+    }
+    if (
+      req.method === 'POST' &&
+      url.pathname === '/__stop_test_server' &&
+      req.headers.origin === origin
+    ) {
+      res.writeHead(204).end();
+      server.close(() => void stop());
       return;
     }
     if (url.pathname.startsWith('/api/')) {
@@ -50,6 +73,7 @@ const server = createServer(async (req, res) => {
           OWNER_EMAIL: 'owner@example.com',
           ADMIN_ORIGIN: origin,
           PUBLIC_ORIGIN: 'http://127.0.0.1:4321',
+          ...publisher.env,
         },
       );
       const responseHeaders: Record<string, string> = {};
@@ -58,7 +82,24 @@ const server = createServer(async (req, res) => {
       });
       responseHeaders['X-Preview-Mode'] = 'synthetic';
       res.writeHead(response.status, responseHeaders);
-      res.end(Buffer.from(await response.arrayBuffer()));
+      if (response.ok && url.pathname === '/api/publishing/status') {
+        res.end(
+          JSON.stringify({
+            ...((await response.json()) as object),
+            previewUrl: origin + '/__simulated-publishing',
+          }),
+        );
+      } else if (
+        response.ok &&
+        /^\/api\/publishing\/captures\/[^/]+\/build$/u.test(url.pathname) &&
+        req.method === 'GET'
+      ) {
+        const value = (await response.json()) as {
+          run: { url: string } | null;
+        };
+        if (value.run) value.run.url = origin + '/__simulated-publishing';
+        res.end(JSON.stringify(value));
+      } else res.end(Buffer.from(await response.arrayBuffer()));
       return;
     }
     const path = resolve(

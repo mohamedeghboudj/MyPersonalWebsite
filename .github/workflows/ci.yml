@@ -3,10 +3,17 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      concurrency_key:
+        description: Isolate checks for an immutable captured build
+        required: false
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
-  group: checks-${{ github.ref }}
+  group: checks-${{ github.workflow }}-${{ inputs.concurrency_key || github.ref }}
   cancel-in-progress: true
 jobs:
   checks:
@@ -24,6 +31,7 @@ jobs:
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - run: pnpm check:site
       - run: pnpm audit --audit-level=moderate
       - run: pnpm db:local
       - run: pnpm spike:local
@@ -33,4 +41,7 @@ jobs:
       - run: pnpm test:browser
       - run: pnpm build:site
       - run: pnpm check:static
+      - run: pnpm check:assets
+      - run: pnpm preview:public:build
+      - run: pnpm test:public
       - run: pnpm check:assets

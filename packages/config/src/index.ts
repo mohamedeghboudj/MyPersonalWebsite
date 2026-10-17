@@ -1,4 +1,18 @@
 import { z } from 'zod';
+import { accessIdentityEnvSchema } from './access.ts';
+export {
+  verifyAccess,
+  accessIdentityEnvSchema,
+  type VerifyAccess,
+} from './access.ts';
+export * from './preview.ts';
+export {
+  publishCapturePolicy,
+  publishing,
+  publishingEnvSchema,
+  publishStorageEnvSchema,
+  publishMaintenanceEnvSchema,
+} from './publishing.ts';
 
 const origin = z
   .url()
@@ -10,18 +24,33 @@ const origin = z
           ['localhost', '127.0.0.1'].includes(new URL(value).hostname))),
     'Expected an origin without a path',
   );
-export const adminEnvSchema = z
+export const cvBuildEnvSchema = z.object({
+  CV_SNAPSHOT_PATH: z.string().trim().min(1).default('artifacts/snapshot.json'),
+  CV_OUTPUT_DIR: z.string().trim().min(1).default('artifacts/cv'),
+});
+export const siteBuildEnvSchema = z
   .object({
+    SITE_ORIGIN: origin.default('http://127.0.0.1:4321'),
+    SITE_MODE: z.enum(['preview', 'production']).default('preview'),
+    SITE_SNAPSHOT_PATH: z.string().min(1).optional(),
+    SITE_MEDIA_SOURCE_DIR: z.string().min(1).optional(),
+    SITE_CV_OUTPUT_DIR: z.string().min(1).optional(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.SITE_MODE === 'production' &&
+      !value.SITE_ORIGIN.startsWith('https://')
+    )
+      context.addIssue({
+        code: 'custom',
+        message: 'Production canonical URLs require HTTPS',
+      });
+  });
+export const adminEnvSchema = accessIdentityEnvSchema
+  .extend({
     APP_ENV: z
       .enum(['local', 'spike', 'preview', 'production'])
       .default('spike'),
-    ACCESS_ISSUER: z
-      .url()
-      .refine((value) =>
-        /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/u.test(value),
-      ),
-    ACCESS_AUDIENCE: z.string().min(16),
-    OWNER_EMAIL: z.email(),
     ADMIN_ORIGIN: origin,
     PUBLIC_ORIGIN: origin.optional(),
   })
@@ -110,6 +139,7 @@ export {
   securityHeaders,
   adminDocumentHeaders,
   publicDocumentHeaders,
+  publicAttachmentHeaders,
   renderPublicHeaders,
 } from './headers.ts';
 
@@ -134,7 +164,7 @@ export async function boundedJson(
   ) as unknown;
 }
 export async function boundedBytes(
-  request: Request,
+  request: Pick<Request, 'headers' | 'body'>,
   maxBytes: number,
 ): Promise<Uint8Array<ArrayBuffer>> {
   if (Number(request.headers.get('content-length')) > maxBytes)

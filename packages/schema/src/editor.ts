@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { locales } from './locales.ts';
+import { siteCopyKeys } from './site-copy.ts';
 export const editorLocales = locales;
 export type EditorField = {
   key: string;
@@ -127,6 +128,26 @@ const group = (
 // The registry owns form metadata and produces all server/client input schemas.
 // Table names are code-owned Drizzle export keys, never SQL received from a user.
 export const editorModules: readonly EditorModule[] = [
+  {
+    key: 'siteCopy',
+    label: 'Public interface text',
+    table: 'siteCopy',
+    titleField: 'home',
+    singleton: true,
+    sensitive: true,
+    fields: [],
+    ...translated(
+      'siteCopyTranslations',
+      'copyId',
+      siteCopyKeys.map((key) =>
+        text(
+          key,
+          key.replace(/[A-Z]/gu, (letter) => ` ${letter.toLowerCase()}`),
+          true,
+        ),
+      ),
+    ),
+  },
   {
     key: 'media',
     label: 'Media library',

@@ -127,6 +127,9 @@ canvas {
   font-family: var(--font-mono);
   font-size: var(--text-caption);
 }
+.metadata:lang(ar) {
+  font-family: var(--font-arabic);
+}
 .divider {
   border-block-start: var(--border-hairline) solid var(--color-line);
   padding-block-start: var(--space-8);
