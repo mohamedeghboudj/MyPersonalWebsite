@@ -138,3 +138,7 @@ Both Astro and the private React shell import the same CSS. Layout uses logical 
 ## Console comparison — 2026-10-08
 
 Phase 2 implements flat lists, clear labeled forms and language coverage using the existing tokens. Desktop and 390px Chromium captures were inspected; the initial horizontal mobile navigation was replaced by a labeled section selector. Arabic fields use real RTL direction, and the preview visibly identifies translation fallback. Desktop/mobile axe checks passed on the exercised editor flow. This is a private workspace review, not approval of the public hero, timeline or project designs. Real-device and cross-browser verification remain outstanding. See [Phase 2 evidence and limits](12-content-console-review.md).
+
+## Preview controls comparison — 2026-10-17
+
+The collapsed Website preview panel retains the console's flat hairline surface, 4px spacing rhythm, labeled native controls and one filled primary action. Opening it loads the extra code on demand. Desktop and 390px screenshots were inspected; a cramped inline selector label was revised to a separate spaced row, and the summary uses the existing minimum touch target. Keyboard opening, reduced motion and axe checks pass. Status text distinguishes a successful build from a verified active preview. No motion, decorative effects or public layout changes were introduced. See [console validation and limits](19-preview-console.md); live Access and real-device proof remain open.

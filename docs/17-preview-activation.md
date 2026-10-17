@@ -1,6 +1,6 @@
 # Phase 3 — preview activation coordinator
 
-The private preview now has an implemented candidate-upload path and an owner-authenticated activation API. This builds on the guard/package work already completed in `b450f82`; it does not redo that work. Remote activation remains disabled and unproven. Console controls, private diagnostics and production publishing still need their connections.
+The private preview now has an implemented candidate-upload path and an owner-authenticated activation API. This builds on the guard/package work already completed in `b450f82`; it does not redo that work. Remote activation remains disabled and unproven. The subsequent [console increment](19-preview-console.md) connects candidate discovery and preview controls; private diagnostics and production publishing remain pending.
 
 ## Upload and activation are separate
 
@@ -8,7 +8,7 @@ After the full checks, captured-input retrieval, trilingual compile, Astro build
 
 The generated configuration names only `mohamedeghboudj-site-preview`, points to the guarded entry point, forces `run_worker_first`, disables version URLs, and contains the exact release receipt. Its directory and logs are outside the served `site/` tree. An explicit empty environment file and a child-process allowlist exclude inherited Node hooks, API URL overrides, production target overrides, GitHub tokens and R2 credentials. Only this upload step gets the scoped Cloudflare credential; the compiler does not. Wrangler stdout/stderr stays in a bounded private file; its own diagnostic files also remain inside the private upload directory. Its structured upload receipt is validated and the resulting version's identity/bundle receipt is read back from Cloudflare. Public Actions logs contain only fixed status text and the candidate UUID. Cleanup removes the private package and its upload directory even after failure. No owner content/PDF/log becomes an Actions artifact.
 
-Uploading is allowed to overlap another build because it does not change the active deployment. A failed or interrupted upload cannot claim activation. Retrying the driver within the same working directory is refused. A workflow rerun can produce another undeployed version; the activation ledger still permits only one version per capture. Candidate discovery for the console remains to be connected; the upload log currently supplies its non-secret UUID.
+Uploading is allowed to overlap another build because it does not change the active deployment. A failed or interrupted upload cannot claim activation. Retrying the driver within the same working directory is refused. A workflow rerun can produce another undeployed version; the activation ledger still permits only one version per capture. The subsequent console increment in `19` discovers matching version bindings without copying UUIDs from logs.
 
 ## Durable order and recovery
 
@@ -40,7 +40,7 @@ Admin activation requires `APP_ENV=preview`, `PREVIEW_ACTIVATION_ENABLED=true`, 
 
 The upload workflow uses repository variables `PREVIEW_UPLOAD_ENABLED`, `PREVIEW_ACCESS_ISSUER`, `PREVIEW_ACCESS_AUDIENCE`, `ADMIN_ACCESS_AUDIENCE` and `PREVIEW_OWNER_EMAIL`, plus Actions secrets `CLOUDFLARE_ACCOUNT_ID` and `PREVIEW_CLOUDFLARE_API_TOKEN`. Tokens must be expiring and scoped to the necessary Workers operations/account, restricted to this Worker where supported, without DNS/D1/R2/account-administration access. Enter secret values only into their private prompts/settings, never chat or tracked configuration. The owner retains responsibility for account changes under the original project instructions. These are documented prerequisites, not changes performed by this increment.
 
-Before a live proof: review/merge the required code in the correct stacked order; apply local-only migrations through `0012` to preview; deploy the minimal guarded bootstrap; let the owner attach a separate owner-only Access application with Independent MFA; configure scoped credentials and explicit flags; and use the forthcoming console controls to prove capture → build → upload → activation → authenticated page/PDF receipt. The production Worker/domain is outside this path.
+Before a live proof: review/merge the required code in the correct stacked order; apply local-only migrations through `0012` to preview; deploy the minimal guarded bootstrap; let the owner attach a separate owner-only Access application with Independent MFA; configure scoped credentials and explicit flags; and use the console preview controls to prove capture → build → upload → activation → authenticated page/PDF receipt. The production Worker/domain is outside this path.
 
 ## Validation and remaining scope
 
@@ -48,4 +48,4 @@ The new coordinator tests cover concurrent requests, a competing capture, a lost
 
 Local Wrangler applied `0012` successfully. All **179 tests across 26 files** pass (137.89 seconds), together with TypeScript, lint and formatting. The 28 new cases cover the coordinator, transport/API/runtime and upload boundaries. Both the admin Worker dry-run and the actual pinned `wrangler versions upload --dry-run` with a generated synthetic configuration pass. Current-head GitHub CI is tracked in PR #9. The admin build remains 247,324 bytes of browser JavaScript; its updated Worker bundles at 1,378.35 KiB (246.55 KiB gzip). No browser component, public layout, motion, design token or content has changed. The reference comparisons in `06` and `13` remain applicable.
 
-Still required: candidate discovery and console preview/publish controls; owner-only diagnostics; production deployment coordination; live private Access/upload/activation/retention proof and new latency measurement. Remote D1 remains through `0006`, the existing protected console is unchanged, and PR #9 remains draft. The project-wide remaining work is tracked in [the completion checklist](18-completion-checklist.md).
+Candidate discovery and private-preview controls are connected in `19`. Still required: owner-only diagnostics; production publishing controls and deployment coordination; live private Access/upload/activation/retention proof and new latency measurement. Remote D1 remains through `0006`, the existing protected console is unchanged, and PR #9 remains draft. The project-wide remaining work is tracked in [the completion checklist](18-completion-checklist.md).

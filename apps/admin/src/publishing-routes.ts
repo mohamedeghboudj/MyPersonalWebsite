@@ -1,9 +1,15 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { boundedJson } from '@platform/config';
+import {
+  boundedJson,
+  publishingEnvSchema,
+  previewActivationEnvSchema,
+  previewPolicy,
+} from '@platform/config';
 import {
   publishCaptureRequestSchema,
   previewActivationRequestSchema,
+  capturedBuildSchema,
 } from '@platform/schema';
 import {
   listPublishCaptures,
@@ -12,6 +18,7 @@ import {
   PublishCaptureError,
   readPreviewDeployment,
   previewDeploymentSummary,
+  readBuildDispatch,
 } from '@platform/database';
 import {
   createPrivateCapture,
@@ -35,6 +42,54 @@ export function createPublishingRoutes(
   cloudflareFetch: PreviewFetch = fetch,
 ) {
   return new Hono<AdminEnvironment>()
+    .get('/preview', async (c) =>
+      c.json({
+        current: await previewDeploymentProvider(
+          c.env,
+          githubFetch,
+          cloudflareFetch,
+        ).current(),
+      }),
+    )
+    .get('/status', (c) =>
+      c.json({
+        available:
+          publishingEnvSchema.safeParse(c.env).success &&
+          previewActivationEnvSchema.safeParse(c.env).success,
+        previewUrl: previewPolicy.origin,
+      }),
+    )
+    .get('/captures/:id/candidate', async (c) => {
+      const id = publishCaptureRequestSchema.shape.id.parse(c.req.param('id'));
+      const capture = await readPublishCapture(c.env.CONTENT, id);
+      if (!capture) throw new PublishCaptureError('Capture not found.', 404);
+      const dispatch = await readBuildDispatch(c.env.CONTENT, id);
+      if (
+        capture.purpose !== 'preview' ||
+        capture.status !== 'ready' ||
+        capture.expiresAt <= new Date().toISOString() ||
+        dispatch?.status !== 'queued' ||
+        !dispatch.runId
+      )
+        throw new PublishCaptureError(
+          'A ready preview and completed build are required.',
+          409,
+        );
+      const provider = previewDeploymentProvider(
+        c.env,
+        githubFetch,
+        cloudflareFetch,
+      );
+      if (!(await provider.buildSucceeded(id, dispatch.runId)))
+        throw new PublishCaptureError(
+          'The preview build has not succeeded yet.',
+          409,
+        );
+      const descriptor = capturedBuildSchema
+        .strip()
+        .parse({ ...capture, schemaVersion: 1 });
+      return c.json({ candidate: await provider.findCandidate(descriptor) });
+    })
     .post('/captures/:id/preview', async (c) => {
       const request = previewActivationRequestSchema.parse(
         await boundedJson(c.req.raw, 1024),

@@ -265,3 +265,69 @@ it('keeps an ambiguous result behind the fence and reconciles without another mu
   ).toHaveLength(1);
   expect((await readPreviewFence(local.content))?.captureId).toBe(id);
 });
+it('discovers only completed, owner-accessible preview captures and exposes no configuration secrets', async () => {
+  const cf = vi.fn(async (request: Request) =>
+    request.url.includes('?deployable=true')
+      ? Response.json({
+          success: true,
+          result: {
+            items: [
+              {
+                id: versionId,
+                metadata: { created_on: new Date().toISOString() },
+              },
+            ],
+          },
+        })
+      : cloudflare(request),
+  );
+  const app = createAdmin(
+    owner,
+    async () => false,
+    async () => run(),
+    cf,
+  );
+  const candidatePath = `/api/publishing/captures/${id}/candidate`;
+  expect((await app.request(candidatePath, {}, bindings())).status).toBe(401);
+  const response = await app.request(candidatePath, { headers }, bindings());
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({
+    candidate: { versionId, release },
+  });
+  const status = await app.request(
+    '/api/publishing/status',
+    { headers },
+    bindings(),
+  );
+  expect(await status.json()).toEqual({
+    available: false,
+    previewUrl: previewPolicy.origin,
+  });
+  const enabled = await app.request(
+    '/api/publishing/status',
+    { headers },
+    { ...bindings(), PUBLISH_BUILDS_ENABLED: 'true' },
+  );
+  expect(await enabled.text()).not.toMatch(
+    /credential|OWNER_EMAIL|ACCESS_AUDIENCE/,
+  );
+  expect(cf.mock.calls.every(([request]) => request.method === 'GET')).toBe(
+    true,
+  );
+  const building = createAdmin(
+    owner,
+    async () => true,
+    async () =>
+      Response.json({
+        ...((await run().json()) as Record<string, unknown>),
+        status: 'in_progress',
+        conclusion: null,
+      }),
+    cf,
+  );
+  cf.mockClear();
+  expect(
+    (await building.request(candidatePath, { headers }, bindings())).status,
+  ).toBe(409);
+  expect(cf).not.toHaveBeenCalled();
+});

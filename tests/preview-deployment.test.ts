@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { previewPolicy } from '@platform/config';
+import type { CapturedBuild } from '@platform/schema';
 import {
   previewDeploymentReader,
   comparePreviewRelease,
@@ -24,7 +25,7 @@ const release = {
   snapshotSha256: 'a'.repeat(64),
   bundleSha256: 'b'.repeat(64),
 };
-const versionId = crypto.randomUUID();
+const versionId: string = crypto.randomUUID();
 const deploymentId = crypto.randomUUID();
 const deployments = () => ({
   success: true,
@@ -51,6 +52,102 @@ const version = (receipt: string = JSON.stringify(release)) => ({
       }).map(([name, text]) => ({ name, text, type: 'plain_text' })),
     },
   },
+});
+const capture: CapturedBuild = {
+  schemaVersion: 1,
+  id: release.id,
+  purpose: 'preview',
+  sequence: release.sequence,
+  revision: release.revision,
+  snapshotSha256: release.snapshotSha256,
+  inputSha256: 'c'.repeat(64),
+  byteSize: 100,
+  createdAt: '2026-10-17T10:00:00.000Z',
+  expiresAt: '2026-10-18T10:00:00.000Z',
+};
+describe('bounded preview candidate discovery', () => {
+  const item = (id = versionId, created_on = capture.createdAt) => ({
+    id,
+    metadata: { created_on },
+  });
+  it('finds exact capture bindings and excludes older versions before detail reads', async () => {
+    const requests: Request[] = [];
+    const reader = previewCloudflareReader(config, async (request) => {
+      requests.push(request);
+      return Response.json(
+        request.url.includes('?deployable=true')
+          ? {
+              success: true,
+              result: {
+                items: [
+                  item(),
+                  item(crypto.randomUUID(), '2026-10-16T10:00:00Z'),
+                ],
+              },
+            }
+          : version(),
+      );
+    });
+    expect(await reader.findCandidate(capture)).toEqual({ versionId, release });
+    expect(requests).toHaveLength(2);
+    expect(requests.every((request) => request.method === 'GET')).toBe(true);
+  });
+  it('refuses duplicate or over-budget candidate sets before detailed reads', async () => {
+    for (const items of [
+      [item(), item()],
+      Array.from({ length: 21 }, () => item(crypto.randomUUID())),
+    ]) {
+      let calls = 0;
+      const reader = previewCloudflareReader(config, async () => {
+        calls++;
+        return Response.json({ success: true, result: { items } });
+      });
+      await expect(reader.findCandidate(capture)).rejects.toThrow(
+        'one verified',
+      );
+      expect(calls).toBe(1);
+    }
+  });
+  it('does not guess between multiple matching uploads or accept conflicting capture receipts', async () => {
+    for (const duplicate of [false, true]) {
+      const ids = duplicate ? [versionId, crypto.randomUUID()] : [versionId];
+      const reader = previewCloudflareReader(config, async (request) => {
+        if (request.url.includes('?'))
+          return Response.json({
+            success: true,
+            result: { items: ids.map((id) => item(id)) },
+          });
+        const value = version(
+          JSON.stringify({
+            ...release,
+            revision: duplicate ? release.revision : release.revision + 1,
+          }),
+        );
+        value.result.id = request.url.split('/').at(-1)!;
+        return Response.json(value);
+      });
+      await expect(reader.findCandidate(capture)).rejects.toThrow(
+        'one verified',
+      );
+    }
+  });
+  it('returns no candidate for an empty set or a different capture, and hides provider failures', async () => {
+    for (const items of [[], [item()]]) {
+      const reader = previewCloudflareReader(config, async (request) =>
+        Response.json(
+          request.url.includes('?')
+            ? { success: true, result: { items } }
+            : version(JSON.stringify({ ...release, id: crypto.randomUUID() })),
+        ),
+      );
+      expect(await reader.findCandidate(capture)).toBeNull();
+    }
+    await expect(
+      previewCloudflareReader(config, async () => {
+        throw new Error('PRIVATE');
+      }).findCandidate(capture),
+    ).rejects.toThrow('Could not identify one verified preview candidate');
+  });
 });
 describe('read-only preview deployment checks', () => {
   it('reads the actively deployed version with bounded, nonredirecting GET requests', async () => {

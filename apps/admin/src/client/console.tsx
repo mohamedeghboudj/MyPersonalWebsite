@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { EditorModule, EditorRecord } from '@platform/schema';
 import { ApiError, checked, client, errorMessage } from './api';
 import { emptyRecord, RecordFields, recordRows, type Issues } from './fields';
 import { Upload } from './upload';
+const Publishing = lazy(() =>
+  import('./publishing').then((module) => ({ default: module.Publishing })),
+);
 
 type Item = {
   id: number;
@@ -29,7 +32,8 @@ function SessionActions() {
     <div className="stack-compact">
       <p>
         Keep this tab open to preserve your draft. Deleting content and changing
-        site settings requires a login from the last five minutes.
+        site settings or preparing previews requires a login from the last five
+        minutes.
       </p>
       <ol className="session-steps">
         <li>
@@ -169,6 +173,7 @@ function Preview({
 }
 export function Console() {
   const [synthetic, setSynthetic] = useState(false);
+  const [previewOpened, setPreviewOpened] = useState(false);
   const [modules, setModules] = useState<EditorModule[]>([]);
   const [active, setActive] = useState('profile');
   const [items, setItems] = useState<Item[]>([]);
@@ -446,7 +451,8 @@ export function Console() {
           {synthetic && (
             <p className="message">
               Temporary local preview. Use sample content here; changes are
-              discarded when this preview stops.
+              discarded when this preview stops. Website preview actions here
+              are simulated and do not deploy online.
             </p>
           )}
           <p role="status" className="save-status">
@@ -487,6 +493,29 @@ export function Console() {
               onUploaded={() => setRefresh((value) => value + 1)}
             />
           )}
+          <details
+            className="relation stack-compact"
+            onToggle={(event) => {
+              if (event.currentTarget.open) setPreviewOpened(true);
+            }}
+          >
+            <summary>Website preview</summary>
+            {previewOpened && (
+              <Suspense
+                fallback={<p role="status">Loading preview controls…</p>}
+              >
+                <Publishing
+                  revision={revision}
+                  blocked={dirty || busy || loading}
+                  onError={report}
+                  onStart={() => {
+                    setError('');
+                    setReauth(false);
+                  }}
+                />
+              </Suspense>
+            )}
+          </details>
           {module && (
             <section
               className="stack-compact"

@@ -8,6 +8,8 @@ import {
   previewReleaseSchema,
   type PreviewRelease,
   type PreviewActivation,
+  capturedBuildSchema,
+  type CapturedBuild,
 } from '@platform/schema';
 
 const deploymentSchema = z.object({
@@ -135,6 +137,58 @@ export function previewCloudflareReader(
   };
   return {
     current,
+    findCandidate: async (rawCapture: CapturedBuild) => {
+      try {
+        const capture = capturedBuildSchema.parse(rawCapture);
+        const data = z
+          .object({
+            success: z.literal(true),
+            result: z.object({
+              items: z
+                .array(
+                  z.object({
+                    id: z.uuid(),
+                    metadata: z.object({ created_on: z.iso.datetime() }),
+                  }),
+                )
+                .max(100),
+            }),
+          })
+          .parse(await get('/versions?deployable=true'));
+        // Cloudflare returns the deployable version set. Filter by capture time
+        // before detailed reads, then cap those reads below the Free subrequest
+        // allowance. No tag, browser-supplied hash or newest-version shortcut is
+        // trusted as proof of the actual release bindings.
+        const candidates = data.result.items.filter(
+          (item) =>
+            Date.parse(item.metadata.created_on) >=
+              Date.parse(capture.createdAt) &&
+            Date.parse(item.metadata.created_on) <
+              Date.parse(capture.expiresAt),
+        );
+        if (
+          candidates.length > 20 ||
+          new Set(candidates.map((item) => item.id)).size !== candidates.length
+        )
+          throw new Error('Candidate search is too broad or ambiguous');
+        const matches = [];
+        for (const item of candidates) {
+          const release = await version(item.id);
+          if (release?.id !== capture.id) continue;
+          if (
+            release.sequence !== capture.sequence ||
+            release.revision !== capture.revision ||
+            release.snapshotSha256 !== capture.snapshotSha256
+          )
+            throw new Error('Conflicting uploaded capture');
+          matches.push({ versionId: item.id, release });
+        }
+        if (matches.length > 1) throw new Error('Ambiguous uploaded capture');
+        return matches[0] ?? null;
+      } catch {
+        throw new Error('Could not identify one verified preview candidate');
+      }
+    },
     candidate: async (versionId: string) => {
       try {
         const release = await version(versionId);

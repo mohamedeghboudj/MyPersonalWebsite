@@ -10,12 +10,15 @@ import {
   type GitHubFetch,
 } from './github-builds.ts';
 import type { PreviewDeploymentProvider } from './preview-coordinator.ts';
+import type { CapturedBuild, PreviewCandidate } from '@platform/schema';
 
 export function previewDeploymentProvider(
   raw: unknown,
   githubFetch: GitHubFetch = fetch,
   cloudflareFetch: PreviewFetch = fetch,
-): PreviewDeploymentProvider {
+): PreviewDeploymentProvider & {
+  findCandidate: (capture: CapturedBuild) => Promise<PreviewCandidate | null>;
+} {
   const parsed = previewActivationEnvSchema.safeParse(raw);
   if (!parsed.success)
     throw new BuildServiceError(
@@ -41,6 +44,7 @@ export function previewDeploymentProvider(
       return run.status === 'completed' && run.conclusion === 'success';
     },
     candidate: reader.candidate,
+    findCandidate: reader.findCandidate,
     current: async () => {
       const value = await reader.current();
       return { versionId: value.versionId, release: value.release };

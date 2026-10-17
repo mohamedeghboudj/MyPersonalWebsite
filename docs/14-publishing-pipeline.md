@@ -1,6 +1,6 @@
 # Phase 3 — private publishing inputs
 
-The publishing backend captures a consistent revision into private R2 storage and can request a GitHub build of that exact input. Preview builds produce a verified static package for an owner-only Access guard; gated candidate upload and a durable owner-authenticated activation API are now implemented. Console controls and live activation remain pending. Capture readiness, workflow state and the version currently live remain separate. See [the private preview review](16-private-preview.md) and [activation review](17-preview-activation.md) for their boundaries.
+The publishing backend captures a consistent revision into private R2 storage and can request a GitHub build of that exact input. Preview builds produce a verified static package for an owner-only Access guard; gated candidate upload and a durable owner-authenticated activation API are now implemented. Private-preview controls are connected in `19-preview-console.md`; live activation and the production publish action remain pending. Capture readiness, workflow state and the version currently live remain separate. See [the private preview review](16-private-preview.md) and [activation review](17-preview-activation.md) for their boundaries.
 
 ## Contract and authentication
 
@@ -75,5 +75,5 @@ This increment changes no page layout or motion. The approved reference comparis
 
 - Activate and prove the implemented dispatch/R2-reader connection in the isolated preview environment after credential setup and review. A successful synthetic proof does not establish live credentials or Access policy.
 - Activate scheduled capture cleanup in preview and confirm live invocations. Add private diagnostics retrieval. The preview coordinator now enforces serialized activation and sequence checks; production coordination still needs its own integration.
-- Connect candidate discovery and console preview/publish controls to the implemented private-preview guard, uploader and coordinator, then prove the complete operation live.
+- Candidate discovery and private-preview controls are connected in `19`. Complete production publishing and prove the full operation live.
 - Prove save-to-live on the isolated preview environment and measure the real latency again. Production and domain cutover remain separate.
