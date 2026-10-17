@@ -1,6 +1,6 @@
 # Phase 3 — private static preview
 
-The preview package and its Access guard are implemented. They have no deployment command or automatic activation step yet. The captured-build workflow packages preview captures, verifies every file, and removes its private workspace at the end. A completed run still means **validated**, not **live**.
+The preview package and its Access guard are implemented. The subsequent [activation increment](17-preview-activation.md) adds a gated candidate upload and durable owner-only activation API. The captured-build workflow never activates a version: a completed run means validated (and uploaded when enabled), not live.
 
 ## Static output behind the owner's Access identity
 
@@ -20,7 +20,7 @@ The package is bounded to 2,000 files, 25 MiB per file and 100 MiB total. Symlin
 
 The build sets its canonical origin to the configured preview target instead of localhost. No input, package, diagnostic file or owner PDF is uploaded as an Actions artifact. The existing synthetic TeX proof separately exercises this packaging path with actual compiled EN/FR/AR PDFs; it does not use owner content or credentials.
 
-## Read-only deployment checks and remaining coordinator
+## Read-only deployment checks
 
 `scripts/preview-deployment.ts` reads Cloudflare's [actively serving deployment](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/deployments/methods/list/) and that exact [version's bindings](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/versions/methods/get/). It does not select the latest uploaded version. Inspection rejects missing Workers, mixed-percentage deployments, missing/duplicate identity bindings, wrong owner/audience and unrecognized receipts. Only an explicit `bootstrap-v1` receipt represents an empty initial preview.
 
@@ -28,9 +28,9 @@ Comparison returns `superseded` for an older capture and `already-active` for an
 
 `scripts/inspect-private-preview.ts` can run these checks against a completed `artifacts/private-preview` bundle when the expected Access identity and a scoped read credential are available in its process environment. Its environment schema is `previewInspectionEnvSchema`; no credential value belongs in chat, command history or a tracked file. This command only sends GET requests. It is not wired into the credential-free compiler or current build workflow.
 
-These checks alone do **not** establish deployment ordering. Before enabling activation, connect a durable deployment intent/fence and its audit record, serialize the deploy section, and reconcile its exact version after a lost response. An unresolved attempt must block a later activation until positively reconciled. GitHub concurrency alone is not FIFO and does not resolve an in-flight request after a runner failure. No deployment mutation has been added in this increment, so a validation or packaging failure leaves the existing deployment untouched.
+These checks alone do **not** establish deployment ordering. The subsequent coordinator now supplies the durable intent/fence, atomic audit and lost-response reconciliation described in [the activation review](17-preview-activation.md). An unresolved attempt blocks a later activation until positively reconciled. GitHub concurrency alone is not FIFO and does not resolve an in-flight request after a runner failure. Activation stays disabled until explicitly configured; validation/packaging failures leave the existing deployment untouched.
 
-Next: complete this coordinator, owner-only diagnostics and console controls, then prepare the minimal guarded Worker and the separate Access application for an isolated live proof. The owner's original instructions reserve Access/dashboard changes and interactive login to the owner. No new account action is requested before that implementation is reviewable. Domain/DNS cutover remains a later explicit step.
+Next: connect candidate discovery, owner-only diagnostics and console controls, then prepare the minimal guarded Worker and separate Access application for an isolated live proof. The owner's original instructions reserve Access/dashboard changes and interactive login to the owner. Domain/DNS cutover remains a later explicit step.
 
 ## Review and evidence
 

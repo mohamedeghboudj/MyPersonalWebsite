@@ -49,9 +49,19 @@ jobs:
       - run: node scripts/build-captured-input.ts
       - run: node scripts/prepare-private-preview.ts
         if: ${{ fromJSON(inputs.capture).purpose == 'preview' }}
-      # Automatic activation remains disabled until durable deployment intent
-      # and ambiguous-response reconciliation are connected. Version comparison
-      # alone is not a deployment lock, and GitHub concurrency is not FIFO.
+      - run: node scripts/upload-private-preview.ts
+        if: ${{ fromJSON(inputs.capture).purpose == 'preview' && vars.PREVIEW_UPLOAD_ENABLED == 'true' }}
+        env:
+          PREVIEW_UPLOAD_ENABLED: 'true'
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.PREVIEW_CLOUDFLARE_API_TOKEN }}
+          ACCESS_ISSUER: ${{ vars.PREVIEW_ACCESS_ISSUER }}
+          ACCESS_AUDIENCE: ${{ vars.PREVIEW_ACCESS_AUDIENCE }}
+          ADMIN_ACCESS_AUDIENCE: ${{ vars.ADMIN_ACCESS_AUDIENCE }}
+          OWNER_EMAIL: ${{ vars.PREVIEW_OWNER_EMAIL }}
+      # Uploading a candidate never activates it. The owner-authenticated admin
+      # coordinator checks this run's success before taking the durable slot.
+      # Version comparison and GitHub concurrency alone cannot order activations.
       # No private input, logs, TeX, originals, PDFs or pages become Actions artifacts.
       - if: ${{ always() }}
         run: node scripts/cleanup-captured-build.ts

@@ -9,5 +9,6 @@ export * from './media-editor.ts';
 export * from './public-snapshot.ts';
 export * from './publish-captures.ts';
 export * from './build-dispatches.ts';
+export * from './preview-deployments.ts';
 export * from './capture-cleanup.ts';
 export * from './site-copy.ts';

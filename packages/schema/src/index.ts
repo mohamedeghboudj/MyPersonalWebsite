@@ -6,6 +6,7 @@ export * from './publish-input.ts';
 export * from './publish-capture.ts';
 export * from './publish-build.ts';
 export * from './preview-release.ts';
+export * from './preview-deployment.ts';
 export * from './site-copy.ts';
 export * from './static-media.ts';
 

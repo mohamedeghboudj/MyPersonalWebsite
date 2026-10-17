@@ -23,3 +23,33 @@ export const previewInspectionEnvSchema = accessIdentityEnvSchema.extend({
     .max(512)
     .regex(/^[^\r\n]+$/u),
 });
+export const previewUploadEnvSchema = previewInspectionEnvSchema
+  .extend({
+    PREVIEW_UPLOAD_ENABLED: z.literal('true'),
+    ADMIN_ACCESS_AUDIENCE: z.string().min(16).max(256),
+  })
+  .refine(
+    (value) => value.ACCESS_AUDIENCE !== value.ADMIN_ACCESS_AUDIENCE,
+    'Private preview and admin require separate application audiences',
+  );
+export const previewActivationEnvSchema = previewInspectionEnvSchema
+  .omit({ CLOUDFLARE_API_TOKEN: true })
+  .extend({
+    APP_ENV: z.enum(['local', 'preview']),
+    PREVIEW_ACTIVATION_ENABLED: z.literal('true'),
+    PREVIEW_ACCESS_AUDIENCE: z.string().min(16).max(256),
+    PREVIEW_CLOUDFLARE_API_TOKEN: z
+      .string()
+      .min(20)
+      .max(512)
+      .regex(/^[^\r\n]+$/u),
+    PUBLISH_GITHUB_TOKEN: z
+      .string()
+      .min(16)
+      .max(512)
+      .regex(/^[^\r\n]+$/u),
+  })
+  .refine(
+    (value) => value.PREVIEW_ACCESS_AUDIENCE !== value.ACCESS_AUDIENCE,
+    'Private preview and admin require separate application audiences',
+  );

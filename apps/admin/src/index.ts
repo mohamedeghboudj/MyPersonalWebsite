@@ -26,6 +26,7 @@ import { mediaRoutes } from './media-routes.ts';
 import { createPublishingRoutes } from './publishing-routes.ts';
 import type { GitHubFetch } from './github-builds.ts';
 import { scheduledCaptureMaintenance } from './capture-maintenance.ts';
+import type { PreviewFetch } from './preview-cloudflare.ts';
 
 type Bindings = {
   ASSETS?: Fetcher;
@@ -40,11 +41,16 @@ type Bindings = {
   PUBLISH_GITHUB_TOKEN?: string;
   APP_ENV?: string;
   PUBLISH_MAINTENANCE_ENABLED?: string;
+  PREVIEW_ACTIVATION_ENABLED?: string;
+  PREVIEW_ACCESS_AUDIENCE?: string;
+  PREVIEW_CLOUDFLARE_API_TOKEN?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
 };
 export function createAdmin(
   verify: VerifyAccess = verifyAccess,
   freshLogin = hasFreshLogin,
   githubFetch: GitHubFetch = fetch,
+  cloudflareFetch: PreviewFetch = fetch,
 ) {
   const app = new Hono<AdminEnvironment>();
   app.use('*', async (c, next) => {
@@ -207,7 +213,10 @@ export function createAdmin(
       return c.json({ saved: true });
     })
     .route('/api/media', mediaRoutes)
-    .route('/api/publishing', createPublishingRoutes(freshLogin, githubFetch))
+    .route(
+      '/api/publishing',
+      createPublishingRoutes(freshLogin, githubFetch, cloudflareFetch),
+    )
     .route('/api/content', createContentRoutes(freshLogin))
     .get('*', async (c) => {
       if (c.req.path.startsWith('/api/'))

@@ -1,6 +1,6 @@
 # Phase 3 — private publishing inputs
 
-The publishing backend captures a consistent revision into private R2 storage and can request a GitHub build of that exact input. Preview builds now produce a verified static package for an owner-only Access guard; automatic activation remains unimplemented. Capture readiness, workflow state and the version currently live remain separate. See [the private preview review](16-private-preview.md) for packaging, authentication and deployment-preflight boundaries.
+The publishing backend captures a consistent revision into private R2 storage and can request a GitHub build of that exact input. Preview builds produce a verified static package for an owner-only Access guard; gated candidate upload and a durable owner-authenticated activation API are now implemented. Console controls and live activation remain pending. Capture readiness, workflow state and the version currently live remain separate. See [the private preview review](16-private-preview.md) and [activation review](17-preview-activation.md) for their boundaries.
 
 ## Contract and authentication
 
@@ -21,7 +21,7 @@ The download is an attachment under `default-src 'none'; sandbox`. Its `X-Publis
 
 ## Consistency, recovery and audit
 
-Migration `0009_publish_captures.sql` adds a ledger separate from the editor's revision counter. A capture has an immutable UUID, sequence, purpose, revision, input hash, snapshot hash, byte count, creator and expiry. The sequence establishes request order for the future deployment coordinator; a sequence alone does not yet enforce deployment order.
+Migration `0009_publish_captures.sql` adds a ledger separate from the editor's revision counter. A capture has an immutable UUID, sequence, purpose, revision, input hash, snapshot hash, byte count, creator and expiry. The sequence supplies request order to the subsequent deployment coordinator; a capture sequence alone cannot enforce deployment order.
 
 The service reads content and eligible media references in one D1 batch, then reserves the input in D1 before writing R2. An insert trigger checks that the captured revision is still current at reservation time. A concurrent edit either becomes a later revision or rejects the new capture; it cannot produce a mixed input. The reservation and its audit event commit together. Status transitions also produce atomic audit events. Capture operations do not increment the content revision.
 
@@ -74,6 +74,6 @@ This increment changes no page layout or motion. The approved reference comparis
 ## Remaining connections
 
 - Activate and prove the implemented dispatch/R2-reader connection in the isolated preview environment after credential setup and review. A successful synthetic proof does not establish live credentials or Access policy.
-- Activate scheduled capture cleanup in preview and confirm live invocations. Add private diagnostics retrieval and serialized deployment with an explicit monotonic sequence check. GitHub concurrency alone is not a request-order guarantee.
-- Activate the implemented private-preview guard after completing the deployment coordinator, then connect console preview/publish controls once those actions perform the complete operation.
+- Activate scheduled capture cleanup in preview and confirm live invocations. Add private diagnostics retrieval. The preview coordinator now enforces serialized activation and sequence checks; production coordination still needs its own integration.
+- Connect candidate discovery and console preview/publish controls to the implemented private-preview guard, uploader and coordinator, then prove the complete operation live.
 - Prove save-to-live on the isolated preview environment and measure the real latency again. Production and domain cutover remain separate.

@@ -1,12 +1,17 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { boundedJson } from '@platform/config';
-import { publishCaptureRequestSchema } from '@platform/schema';
+import {
+  publishCaptureRequestSchema,
+  previewActivationRequestSchema,
+} from '@platform/schema';
 import {
   listPublishCaptures,
   readPublishCapture,
   captureSummary,
   PublishCaptureError,
+  readPreviewDeployment,
+  previewDeploymentSummary,
 } from '@platform/database';
 import {
   createPrivateCapture,
@@ -17,12 +22,72 @@ import { hasFreshLogin } from './fresh-auth.ts';
 import type { AdminEnvironment } from './index.ts';
 import { requestCapturedBuild, capturedBuildStatus } from './build-dispatch.ts';
 import { BuildServiceError, type GitHubFetch } from './github-builds.ts';
+import {
+  coordinatePreviewDeployment,
+  reconcilePreviewDeployment,
+} from './preview-coordinator.ts';
+import { previewDeploymentProvider } from './preview-provider.ts';
+import type { PreviewFetch } from './preview-cloudflare.ts';
 
 export function createPublishingRoutes(
   freshLogin = hasFreshLogin,
   githubFetch: GitHubFetch = fetch,
+  cloudflareFetch: PreviewFetch = fetch,
 ) {
   return new Hono<AdminEnvironment>()
+    .post('/captures/:id/preview', async (c) => {
+      const request = previewActivationRequestSchema.parse(
+        await boundedJson(c.req.raw, 1024),
+      );
+      const rejected = await requireRecentLogin(
+        c,
+        freshLogin,
+        'Sign in again before activating a private preview.',
+      );
+      if (rejected) return rejected;
+      const deployment = await coordinatePreviewDeployment(
+        c.env.CONTENT,
+        c.req.param('id'),
+        request.versionId,
+        c.get('actor'),
+        previewDeploymentProvider(c.env, githubFetch, cloudflareFetch),
+      );
+      return c.json(
+        { deployment },
+        deployment.status === 'activating' || deployment.status === 'uncertain'
+          ? 202
+          : 200,
+      );
+    })
+    .post('/captures/:id/preview/reconcile', async (c) => {
+      z.object({})
+        .strict()
+        .parse(await boundedJson(c.req.raw, 1024));
+      const rejected = await requireRecentLogin(
+        c,
+        freshLogin,
+        'Sign in again before reconciling a preview deployment.',
+      );
+      if (rejected) return rejected;
+      const deployment = await reconcilePreviewDeployment(
+        c.env.CONTENT,
+        c.req.param('id'),
+        c.get('actor'),
+        previewDeploymentProvider(c.env, githubFetch, cloudflareFetch),
+      );
+      return c.json(
+        { deployment },
+        deployment.status === 'activating' || deployment.status === 'uncertain'
+          ? 202
+          : 200,
+      );
+    })
+    .get('/captures/:id/preview', async (c) => {
+      const id = publishCaptureRequestSchema.shape.id.parse(c.req.param('id'));
+      const row = await readPreviewDeployment(c.env.CONTENT, id);
+      if (!row) return c.json({ error: 'Preview deployment not found.' }, 404);
+      return c.json({ deployment: previewDeploymentSummary(row) });
+    })
     .post('/captures/:id/build', async (c) => {
       z.object({})
         .strict()
