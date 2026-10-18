@@ -317,7 +317,7 @@ describe('scheduled private-input retention', () => {
       'ready',
     );
     await expect(
-      scheduledCaptureMaintenance(event, { ...enabled, APP_ENV: 'production' }),
+      scheduledCaptureMaintenance(event, { ...enabled, APP_ENV: 'spike' }),
     ).rejects.toThrow(
       'Private capture maintenance failed; the next scheduled run will retry.',
     );

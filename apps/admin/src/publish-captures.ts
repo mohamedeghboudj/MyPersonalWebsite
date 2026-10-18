@@ -162,12 +162,15 @@ export async function createPrivateCapture(
   raw: unknown,
   actor: string,
   clock: () => Date = () => new Date(),
+  environment: 'preview' | 'production' = 'preview',
 ) {
   const request = publishCaptureRequestSchema.parse(raw);
   const now = clock();
   await expirePrivateCaptures(binding, bucket, actor, now);
   let row = await readPublishCapture(binding, request.id);
   if (row) {
+    if (row.environment !== environment)
+      throw new PublishCaptureError('Capture environment mismatch.', 409);
     assertSameRequest(row, request);
     if (row.expiresAt <= now.toISOString() && row.status !== 'expired')
       return expireCapture(binding, bucket, row, actor, now);
@@ -231,6 +234,7 @@ export async function createPrivateCapture(
     try {
       row = await reservePublishCapture(binding, {
         ...request,
+        environment,
         inputSha256,
         snapshotSha256,
         byteSize,

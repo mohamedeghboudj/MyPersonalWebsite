@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { readCapturedInput } from './captured-input.ts';
-import { previewPolicy } from '@platform/config';
+import { previewPolicy, publicationTargets } from '@platform/config';
 
 export function privateBuildEnvironment(
   source: NodeJS.ProcessEnv = process.env,
@@ -76,7 +76,7 @@ export async function buildCapturedInput(
   cvDirectory: string,
   logDirectory: string,
 ) {
-  await readCapturedInput(inputDirectory);
+  const capture = await readCapturedInput(inputDirectory);
   const snapshot = resolve(inputDirectory, 'snapshot.json');
   const env = {
     ...privateBuildEnvironment(),
@@ -85,8 +85,14 @@ export async function buildCapturedInput(
     SITE_SNAPSHOT_PATH: snapshot,
     SITE_MEDIA_SOURCE_DIR: resolve(inputDirectory, 'media'),
     SITE_CV_OUTPUT_DIR: resolve(cvDirectory),
-    SITE_MODE: 'preview',
-    SITE_ORIGIN: previewPolicy.origin,
+    SITE_MODE:
+      capture.purpose === 'publish' && capture.environment === 'production'
+        ? 'production'
+        : 'preview',
+    SITE_ORIGIN:
+      capture.purpose === 'preview'
+        ? previewPolicy.origin
+        : publicationTargets[capture.environment].origin,
   };
   for (const [stage, args, cwd] of [
     ['cv-prepare', [resolve('scripts/prepare-cv.ts')], resolve('.')],

@@ -12,3 +12,5 @@ export * from './build-dispatches.ts';
 export * from './preview-deployments.ts';
 export * from './capture-cleanup.ts';
 export * from './site-copy.ts';
+
+export * from './publications.ts';

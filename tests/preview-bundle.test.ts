@@ -38,7 +38,10 @@ beforeAll(async () => {
   }
 });
 afterEach(() => vi.useRealTimers());
-async function fixture() {
+async function fixture(
+  purpose: 'preview' | 'publish' = 'preview',
+  environment: 'preview' | 'production' = 'preview',
+) {
   await mkdir('artifacts/preview-bundle-tests', { recursive: true });
   const root = await mkdtemp(resolve('artifacts/preview-bundle-tests/run-'));
   const source = structuredClone(input);
@@ -48,7 +51,8 @@ async function fixture() {
   const capture = {
     schemaVersion: 1 as const,
     id: crypto.randomUUID(),
-    purpose: 'preview' as const,
+    purpose,
+    environment,
     sequence: 1,
     revision: snapshot.revision,
     inputSha256: sealed.sha256,
@@ -106,7 +110,7 @@ async function fixture() {
       );
   }
   for (const [path, text] of Object.entries({
-    _headers: renderPublicHeaders('preview'),
+    _headers: renderPublicHeaders(environment),
     _redirects: '\n',
     'robots.txt': 'User-agent: *\nDisallow: /\n',
     'sitemap.xml': '<urlset/>',
@@ -125,7 +129,8 @@ async function fixture() {
     siteDir,
     destination,
     put,
-    prepare: () => preparePreviewBundle(inputDir, cvDir, siteDir, destination),
+    prepare: () =>
+      preparePreviewBundle(inputDir, cvDir, siteDir, destination, purpose),
   };
 }
 describe('private static preview packaging', () => {
@@ -272,3 +277,20 @@ describe('private static preview packaging', () => {
     ).rejects.toThrow('Only a preview');
   });
 });
+
+it.each(['preview', 'production'] as const)(
+  'packages all three public CVs for a %s publication and refuses cross-purpose use',
+  async (environment) => {
+    const f = await fixture('publish', environment);
+    const bundle = await f.prepare();
+    expect(
+      (await verifyPreviewBundle(f.destination, 'publish')).capture.environment,
+    ).toBe(environment);
+    expect(
+      bundle.files.filter((file) => file.path.startsWith('cv/')),
+    ).toHaveLength(3);
+    await expect(verifyPreviewBundle(f.destination)).rejects.toThrow(
+      'identity',
+    );
+  },
+);

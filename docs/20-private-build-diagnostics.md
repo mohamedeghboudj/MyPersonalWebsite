@@ -1,5 +1,7 @@
 # Phase 3 — private build diagnostics
 
+Current publishing implementation and live activation steps: [21-publishing-activation.md](21-publishing-activation.md). The earlier increment below is historical; public publishing is now implemented, while its live proof is still pending.
+
 The console can read a private report for a completed captured build, including a failed compile. The report contains the capture descriptor, exact GitHub run/attempt, stage outcomes and bounded output from the three credential-free build stages. It is diagnostic evidence only: it cannot authorize an upload, activation or publication, and its reported outcomes never replace provider verification.
 
 ## Collection and storage

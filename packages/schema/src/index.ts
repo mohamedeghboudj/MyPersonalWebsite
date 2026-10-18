@@ -165,3 +165,5 @@ export const contactSchema = z
   })
   .strict();
 export type ContactInput = z.infer<typeof contactSchema>;
+
+export * from './publication.ts';

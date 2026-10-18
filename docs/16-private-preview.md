@@ -1,5 +1,7 @@
 # Phase 3 — private static preview
 
+Current publishing implementation and live activation steps: [21-publishing-activation.md](21-publishing-activation.md). The earlier increment below is historical; public publishing is now implemented, while its live proof is still pending.
+
 The preview package and its Access guard are implemented. The subsequent [activation increment](17-preview-activation.md) adds a gated candidate upload and durable owner-only activation API. The captured-build workflow never activates a version: a completed run means validated (and uploaded when enabled), not live.
 
 ## Static output behind the owner's Access identity

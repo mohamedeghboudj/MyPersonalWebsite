@@ -57,6 +57,7 @@ const capture: CapturedBuild = {
   schemaVersion: 1,
   id: release.id,
   purpose: 'preview',
+  environment: 'preview',
   sequence: release.sequence,
   revision: release.revision,
   snapshotSha256: release.snapshotSha256,

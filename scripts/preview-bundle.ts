@@ -7,6 +7,7 @@ import {
   previewReleaseSchema,
   publicSnapshotSchema,
   locales,
+  publicReleaseReceiptSchema,
 } from '@platform/schema';
 import { readCapturedInput, validateCaptureTime } from './captured-input.ts';
 import { verifyPublicCvs } from './cv-artifacts.ts';
@@ -52,9 +53,10 @@ export async function preparePreviewBundle(
   cvDirectory: string,
   siteDirectory: string,
   destination: string,
+  purpose: 'preview' | 'publish' = 'preview',
 ) {
   const capture = await readCapturedInput(inputDirectory);
-  if (capture.purpose !== 'preview')
+  if (capture.purpose !== purpose)
     throw new Error('Only a preview capture can become a private preview');
   const snapshot = publicSnapshotSchema.parse(
     JSON.parse(
@@ -109,11 +111,20 @@ export async function preparePreviewBundle(
       throw new Error('Preview exceeds total byte budget');
     if (
       html.has(path) &&
-      (!utf8(bytes).includes('content="noindex, nofollow"') ||
+      (((purpose === 'preview' || capture.environment === 'preview') &&
+        !utf8(bytes).includes('content="noindex, nofollow"')) ||
         !utf8(bytes).includes(`data-revision="${capture.revision}"`))
     )
       throw new Error('Preview document mode or revision mismatch');
-    if (path === '_headers' && utf8(bytes) !== renderPublicHeaders('preview'))
+    if (
+      path === '_headers' &&
+      utf8(bytes) !==
+        renderPublicHeaders(
+          purpose === 'preview' || capture.environment === 'preview'
+            ? 'preview'
+            : 'production',
+        )
+    )
       throw new Error('Preview security headers mismatch');
     if (
       /^(media|documents)\//u.test(path) &&
@@ -137,6 +148,36 @@ export async function preparePreviewBundle(
   }
   if (cvs.some((file) => !paths.includes(`cv/${file.locale}.pdf`)))
     throw new Error('Preview CV is missing');
+  if (purpose === 'publish') {
+    // Public integrity metadata only. No input key, original, actor or report.
+    const receipt = publicReleaseReceiptSchema.parse({
+      schemaVersion: 1,
+      captureId: capture.id,
+      revision: capture.revision,
+      snapshotSha256: capture.snapshotSha256,
+      capturedAt: capture.createdAt,
+      cvs: Object.fromEntries(
+        cvs.map((file) => [file.locale, digest(file.pdf)]),
+      ),
+    });
+    const bytes = Buffer.from(JSON.stringify(receipt));
+    await writeFile(resolve(destination, 'site/release.json'), bytes, {
+      flag: 'wx',
+      mode: 0o600,
+    });
+    entries.push({
+      path: 'release.json',
+      sha256: digest(bytes),
+      bytes: bytes.length,
+    });
+    entries.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+    total += bytes.length;
+    if (
+      entries.length > previewPolicy.maxFiles ||
+      total > previewPolicy.maxTotalBytes
+    )
+      throw new Error('Publication exceeds package budget');
+  }
   await readCapturedInput(inputDirectory);
   const release = previewReleaseSchema
     .strip()
@@ -154,13 +195,16 @@ export async function preparePreviewBundle(
   );
   return manifest;
 }
-export async function verifyPreviewBundle(directory: string) {
+export async function verifyPreviewBundle(
+  directory: string,
+  purpose: 'preview' | 'publish' = 'preview',
+) {
   const raw = await fileBytes(directory, 'manifest.json', 1024 * 1024);
   const bundle = previewBundleSchema.parse(JSON.parse(utf8(raw)));
   validateCaptureTime(bundle.capture);
   const { capture, release, files } = bundle;
   if (
-    capture.purpose !== 'preview' ||
+    capture.purpose !== purpose ||
     release.id !== capture.id ||
     release.sequence !== capture.sequence ||
     release.revision !== capture.revision ||

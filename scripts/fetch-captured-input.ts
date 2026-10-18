@@ -4,6 +4,11 @@ import { fetchCapturedInput } from './captured-input.ts';
 
 try {
   const { capture } = await capturedWorkflow();
+  if (
+    process.env.PUBLISH_R2_BUCKET !==
+    `mohamedeghboudj-media-${capture.environment}`
+  )
+    throw new Error('Storage environment mismatch');
   await fetchCapturedInput(
     capture,
     privateR2Reader(process.env),

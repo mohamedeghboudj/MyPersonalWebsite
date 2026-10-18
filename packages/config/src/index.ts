@@ -6,6 +6,7 @@ export {
   type VerifyAccess,
 } from './access.ts';
 export * from './preview.ts';
+export * from './publication.ts';
 export {
   publishCapturePolicy,
   publishing,

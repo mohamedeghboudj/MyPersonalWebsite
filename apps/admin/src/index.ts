@@ -1,3 +1,4 @@
+import { scheduledPublication } from './publication-queue.ts';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
@@ -254,5 +255,8 @@ export type AdminEnvironment = {
 const app = createAdmin();
 export default {
   fetch: app.fetch,
-  scheduled: scheduledCaptureMaintenance,
+  async scheduled(event: ScheduledController, env: Bindings) {
+    await scheduledCaptureMaintenance(event, env);
+    await scheduledPublication(event, env);
+  },
 };

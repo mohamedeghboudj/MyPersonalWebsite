@@ -2,8 +2,16 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
-import { previewPolicy, publishCapturePolicy } from '@platform/config';
-import { uploadPrivatePreview } from '../scripts/private-preview-upload';
+import {
+  previewPolicy,
+  publishCapturePolicy,
+  publicationTargets,
+  publicationPolicy,
+} from '@platform/config';
+import {
+  uploadPrivatePreview,
+  uploadPublicSite,
+} from '../scripts/private-preview-upload';
 import type { privateNodeStage } from '../scripts/private-build';
 
 const config = {
@@ -18,7 +26,7 @@ const config = {
 const hash = (value: string) =>
   createHash('sha256').update(value).digest('hex');
 afterEach(() => vi.useRealTimers());
-async function fixture() {
+async function fixture(purpose: 'preview' | 'publish' = 'preview') {
   await mkdir('artifacts/preview-upload-tests', { recursive: true });
   const root = await mkdtemp(resolve('artifacts/preview-upload-tests/run-'));
   await mkdir(resolve(root, 'site'));
@@ -33,7 +41,8 @@ async function fixture() {
   const capture = {
     schemaVersion: 1 as const,
     id: crypto.randomUUID(),
-    purpose: 'preview' as const,
+    purpose,
+    environment: 'preview' as const,
     sequence: 1,
     revision: 1,
     inputSha256: 'b'.repeat(64),
@@ -78,17 +87,37 @@ async function fixture() {
       success: true,
       result: {
         id,
+        annotations:
+          purpose === 'publish'
+            ? {
+                'workers/message':
+                  id === baseline
+                    ? publicationPolicy.bootstrap
+                    : JSON.stringify(release),
+              }
+            : {},
         resources: {
-          bindings: Object.entries({
-            APP_ENV: 'preview',
-            ACCESS_ISSUER: config.ACCESS_ISSUER,
-            ACCESS_AUDIENCE: config.ACCESS_AUDIENCE,
-            OWNER_EMAIL: config.OWNER_EMAIL,
-            PREVIEW_RELEASE:
-              id === baseline
-                ? previewPolicy.bootstrap
-                : JSON.stringify(release),
-          }).map(([name, text]) => ({ type: 'plain_text', name, text })),
+          ...(purpose === 'publish'
+            ? {
+                script: { etag: '', handlers: null },
+                script_runtime: {
+                  assets: { serve_directly: true, raw_run_worker_first: false },
+                },
+              }
+            : {}),
+          bindings:
+            purpose === 'publish'
+              ? []
+              : Object.entries({
+                  APP_ENV: 'preview',
+                  ACCESS_ISSUER: config.ACCESS_ISSUER,
+                  ACCESS_AUDIENCE: config.ACCESS_AUDIENCE,
+                  OWNER_EMAIL: config.OWNER_EMAIL,
+                  PREVIEW_RELEASE:
+                    id === baseline
+                      ? previewPolicy.bootstrap
+                      : JSON.stringify(release),
+                }).map(([name, text]) => ({ type: 'plain_text', name, text })),
         },
       },
     });
@@ -99,7 +128,10 @@ async function fixture() {
       JSON.stringify({
         type: 'version-upload',
         version: 1,
-        worker_name: previewPolicy.workerName,
+        worker_name:
+          purpose === 'preview'
+            ? previewPolicy.workerName
+            : publicationTargets.preview.workerName,
         version_id: candidate,
       }) + '\n',
     );
@@ -259,4 +291,62 @@ describe('private preview candidate upload', () => {
       );
     }
   });
+});
+
+it('uploads publication assets with no Worker entry point, bindings or routes and an exact version receipt', async () => {
+  const f = await fixture('publish');
+  const env = {
+    ...config,
+    PUBLISH_UPLOAD_ENABLED: 'true',
+    DEPLOYMENT_ENVIRONMENT: 'preview',
+  };
+  const run: typeof privateNodeStage = async (
+    stage,
+    args,
+    child,
+    logs,
+    cwd,
+  ) => {
+    const worker = JSON.parse(
+      await readFile(args[args.indexOf('--config') + 1]!, 'utf8'),
+    );
+    expect(worker).not.toHaveProperty('main');
+    expect(worker).not.toHaveProperty('vars');
+    expect(worker.assets).not.toHaveProperty('binding');
+    expect(worker.assets).not.toHaveProperty('run_worker_first');
+    expect(worker).not.toHaveProperty('routes');
+    expect(worker.name).toBe(publicationTargets.preview.workerName);
+    expect(args.slice(1, 3)).toEqual(['versions', 'upload']);
+    expect(JSON.parse(args[args.indexOf('--message') + 1]!)).toEqual(f.release);
+    await f.writeReceipt(stage, args, child, logs, cwd);
+  };
+  expect((await uploadPublicSite(f.root, env, f.send, run)).release).toEqual(
+    f.release,
+  );
+  expect(
+    f.requests.every((q) =>
+      q.url.includes('/' + publicationTargets.preview.workerName + '/'),
+    ),
+  ).toBe(true);
+});
+it('rejects a public upload whose capture belongs to another environment or purpose', async () => {
+  const f = await fixture('publish');
+  const run = vi.fn(f.writeReceipt);
+  await expect(
+    uploadPublicSite(
+      f.root,
+      {
+        ...config,
+        PUBLISH_UPLOAD_ENABLED: 'true',
+        DEPLOYMENT_ENVIRONMENT: 'production',
+      },
+      f.send,
+      run,
+    ),
+  ).rejects.toThrow('environment');
+  await expect(
+    uploadPrivatePreview(f.root, config, f.send, run),
+  ).rejects.toThrow('identity');
+  expect(f.requests).toHaveLength(0);
+  expect(run).not.toHaveBeenCalled();
 });

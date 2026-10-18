@@ -6,6 +6,7 @@ export const capturedBuildSchema = publishCaptureSummarySchema
   .pick({
     id: true,
     purpose: true,
+    environment: true,
     sequence: true,
     revision: true,
     inputSha256: true,

@@ -27,6 +27,7 @@ jobs:
     if: github.actor == github.repository_owner && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    environment: ${{ fromJSON(inputs.capture).environment || 'preview' }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -42,7 +43,7 @@ jobs:
         run: node scripts/fetch-captured-input.ts
         env:
           PUBLISH_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PUBLISH_R2_BUCKET: mohamedeghboudj-media-preview
+          PUBLISH_R2_BUCKET: mohamedeghboudj-media-${{ fromJSON(inputs.capture).environment || 'preview' }}
           PUBLISH_R2_ACCESS_KEY_ID: ${{ secrets.PUBLISH_R2_ACCESS_KEY_ID }}
           PUBLISH_R2_SECRET_ACCESS_KEY: ${{ secrets.PUBLISH_R2_SECRET_ACCESS_KEY }}
       # Read credentials are scoped to retrieval. Compiler children receive
@@ -51,7 +52,6 @@ jobs:
         run: node scripts/build-captured-input.ts
       - id: package
         run: node scripts/prepare-private-preview.ts
-        if: ${{ fromJSON(inputs.capture).purpose == 'preview' }}
       - id: upload
         run: node scripts/upload-private-preview.ts
         if: ${{ fromJSON(inputs.capture).purpose == 'preview' && vars.PREVIEW_UPLOAD_ENABLED == 'true' }}
@@ -63,6 +63,14 @@ jobs:
           ACCESS_AUDIENCE: ${{ vars.PREVIEW_ACCESS_AUDIENCE }}
           ADMIN_ACCESS_AUDIENCE: ${{ vars.ADMIN_ACCESS_AUDIENCE }}
           OWNER_EMAIL: ${{ vars.PREVIEW_OWNER_EMAIL }}
+      - id: public_upload
+        run: node scripts/upload-public-site.ts
+        if: ${{ fromJSON(inputs.capture).purpose == 'publish' && vars.PUBLISH_UPLOAD_ENABLED == 'true' }}
+        env:
+          PUBLISH_UPLOAD_ENABLED: 'true'
+          DEPLOYMENT_ENVIRONMENT: ${{ fromJSON(inputs.capture).environment || 'preview' }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.PUBLISH_CLOUDFLARE_API_TOKEN }}
       # Uploading a candidate never activates it. The owner-authenticated admin
       # coordinator checks this run's success before taking the durable slot.
       # Version comparison and GitHub concurrency alone cannot order activations.
@@ -76,12 +84,12 @@ jobs:
         env:
           PUBLISH_DIAGNOSTICS_ENABLED: 'true'
           PUBLISH_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PUBLISH_R2_BUCKET: mohamedeghboudj-media-preview
+          PUBLISH_R2_BUCKET: mohamedeghboudj-media-${{ fromJSON(inputs.capture).environment || 'preview' }}
           DIAGNOSTICS_R2_ACCESS_KEY_ID: ${{ secrets.DIAGNOSTICS_R2_ACCESS_KEY_ID }}
           DIAGNOSTICS_R2_SECRET_ACCESS_KEY: ${{ secrets.DIAGNOSTICS_R2_SECRET_ACCESS_KEY }}
           DIAGNOSTIC_RETRIEVAL: ${{ steps.retrieve.outcome }}
           DIAGNOSTIC_BUILD: ${{ steps.compile.outcome }}
           DIAGNOSTIC_PACKAGE: ${{ steps.package.outcome }}
-          DIAGNOSTIC_UPLOAD: ${{ steps.upload.outcome }}
+          DIAGNOSTIC_UPLOAD: ${{ fromJSON(inputs.capture).purpose == 'publish' && steps.public_upload.outcome || steps.upload.outcome }}
       - if: ${{ always() }}
         run: node scripts/cleanup-captured-build.ts

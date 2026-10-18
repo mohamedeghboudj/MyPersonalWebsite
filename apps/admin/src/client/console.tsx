@@ -451,7 +451,7 @@ export function Console() {
           {synthetic && (
             <p className="message">
               Temporary local preview. Use sample content here; changes are
-              discarded when this preview stops. Website preview actions here
+              discarded when this preview stops. Website publishing actions here
               are simulated and do not deploy online.
             </p>
           )}
@@ -499,7 +499,7 @@ export function Console() {
               if (event.currentTarget.open) setPreviewOpened(true);
             }}
           >
-            <summary>Website preview</summary>
+            <summary>Website publishing</summary>
             {previewOpened && (
               <Suspense
                 fallback={<p role="status">Loading preview controls…</p>}

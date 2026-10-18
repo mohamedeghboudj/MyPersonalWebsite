@@ -11,9 +11,7 @@ import {
   readPublishCapture,
   readBuildDispatch,
   readPreviewDeployment,
-  readPreviewFence,
-  reservePreviewDeployment,
-  finishPreviewDeployment,
+  deploymentStore,
   previewDeploymentSummary,
   PublishCaptureError,
 } from '@platform/database';
@@ -37,7 +35,9 @@ async function reconcile(
   actor: string,
   provider: PreviewDeploymentProvider,
   clock: () => Date,
+  purpose: 'preview' | 'publish',
 ) {
+  const { finishPreviewDeployment } = deploymentStore(purpose);
   if (row.status === 'deployed' || row.status === 'rejected')
     return previewDeploymentSummary(row);
   let observation: PreviewActivation | null = null;
@@ -70,13 +70,15 @@ export async function reconcilePreviewDeployment(
   actor: string,
   provider: PreviewDeploymentProvider,
   clock = () => new Date(),
+  purpose: 'preview' | 'publish' = 'preview',
 ) {
+  const { readPreviewDeployment } = deploymentStore(purpose);
   id = publishCaptureRequestSchema.shape.id.parse(id);
   const row = await readPreviewDeployment(binding, id);
   if (!row) throw new PublishCaptureError('Preview deployment not found.', 404);
   // No expiry override or retry POST. Positive evidence may arrive after the
   // input's TTL, and absence from a bounded history is never rejection proof.
-  return reconcile(binding, row, actor, provider, clock);
+  return reconcile(binding, row, actor, provider, clock, purpose);
 }
 export async function coordinatePreviewDeployment(
   binding: D1Database,
@@ -85,7 +87,14 @@ export async function coordinatePreviewDeployment(
   actor: string,
   provider: PreviewDeploymentProvider,
   clock = () => new Date(),
+  purpose: 'preview' | 'publish' = 'preview',
 ) {
+  const {
+    readPreviewDeployment,
+    readPreviewFence,
+    reservePreviewDeployment,
+    finishPreviewDeployment,
+  } = deploymentStore(purpose);
   candidateId = publishCaptureRequestSchema.shape.id.parse(candidateId);
   versionId = previewCandidateSchema.shape.versionId.parse(versionId);
   const existing = await readPreviewDeployment(binding, candidateId);
@@ -94,7 +103,7 @@ export async function coordinatePreviewDeployment(
       throw conflict(
         'This capture already has a different deployment attempt.',
       );
-    return reconcile(binding, existing, actor, provider, clock);
+    return reconcile(binding, existing, actor, provider, clock, purpose);
   }
   if (await readPreviewFence(binding))
     throw conflict(
@@ -104,7 +113,7 @@ export async function coordinatePreviewDeployment(
   const dispatch = await readBuildDispatch(binding, candidateId);
   if (!capture) throw new PublishCaptureError('Capture not found.', 404);
   if (
-    capture.purpose !== 'preview' ||
+    capture.purpose !== purpose ||
     capture.status !== 'ready' ||
     capture.expiresAt <= clock().toISOString() ||
     dispatch?.status !== 'queued' ||

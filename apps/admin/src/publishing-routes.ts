@@ -5,6 +5,8 @@ import {
   publishingEnvSchema,
   previewActivationEnvSchema,
   previewPolicy,
+  publicationEnvSchema,
+  publicationTargets,
 } from '@platform/config';
 import {
   publishCaptureRequestSchema,
@@ -19,6 +21,10 @@ import {
   readPreviewDeployment,
   previewDeploymentSummary,
   readBuildDispatch,
+  requestPublication,
+  readPublication,
+  publicationSummary,
+  deploymentStore,
 } from '@platform/database';
 import {
   createPrivateCapture,
@@ -36,6 +42,7 @@ import {
 import { previewDeploymentProvider } from './preview-provider.ts';
 import type { PreviewFetch } from './preview-cloudflare.ts';
 import { readBuildDiagnostics } from './build-diagnostics.ts';
+import { publicationProvider } from './publication-provider.ts';
 
 export function createPublishingRoutes(
   freshLogin = hasFreshLogin,
@@ -43,6 +50,69 @@ export function createPublishingRoutes(
   cloudflareFetch: PreviewFetch = fetch,
 ) {
   return new Hono<AdminEnvironment>()
+    .post('/publish', async (c) => {
+      const parsed = publicationEnvSchema.safeParse(c.env);
+      if (!parsed.success)
+        throw new BuildServiceError(
+          'Public publishing is not configured for this environment.',
+        );
+      const config = parsed.data;
+      const request = publishCaptureRequestSchema
+        .extend({ purpose: z.literal('publish') })
+        .parse(await boundedJson(c.req.raw, 1024));
+      const rejected = await requireRecentLogin(
+        c,
+        freshLogin,
+        'Sign in again before publishing your website.',
+      );
+      if (rejected) return rejected;
+      if (!c.env.MEDIA)
+        return c.json(
+          { error: 'Private capture storage is not configured.' },
+          503,
+        );
+      const capture = await createPrivateCapture(
+        c.env.CONTENT,
+        c.env.MEDIA,
+        request,
+        c.get('actor'),
+        undefined,
+        config.APP_ENV === 'production' ? 'production' : 'preview',
+      );
+      if (capture.status !== 'ready')
+        return c.json({ capture, publication: null }, 202);
+      const publication = await requestPublication(
+        c.env.CONTENT,
+        capture.id,
+        c.get('actor'),
+        new Date().toISOString(),
+      );
+      // The scheduled coordinator owns dispatch and deployment. Returning the
+      // durable intent does not claim that the site has changed yet.
+      return c.json({ capture, publication }, 202);
+    })
+    .get('/public', async (c) =>
+      c.json({
+        current: await publicationProvider(
+          c.env,
+          githubFetch,
+          cloudflareFetch,
+        ).current(),
+      }),
+    )
+    .get('/captures/:id/publication', async (c) => {
+      const id = publishCaptureRequestSchema.shape.id.parse(c.req.param('id'));
+      const row = await readPublication(c.env.CONTENT, id);
+      if (!row) return c.json({ error: 'Publication not found.' }, 404);
+      const deployment = await deploymentStore('publish').readPreviewDeployment(
+        c.env.CONTENT,
+        id,
+      );
+      return c.json({
+        publication: publicationSummary(row),
+        deployment: deployment ? previewDeploymentSummary(deployment) : null,
+      });
+    })
     .get('/captures/:id/diagnostics', async (c) => {
       if (!c.env.MEDIA)
         return c.json(
@@ -78,6 +148,11 @@ export function createPublishingRoutes(
           publishingEnvSchema.safeParse(c.env).success &&
           previewActivationEnvSchema.safeParse(c.env).success,
         previewUrl: previewPolicy.origin,
+        publishAvailable: publicationEnvSchema.safeParse(c.env).success,
+        publicUrl:
+          publicationTargets[
+            c.env.APP_ENV === 'production' ? 'production' : 'preview'
+          ].origin,
       }),
     )
     .get('/captures/:id/candidate', async (c) => {
@@ -223,6 +298,8 @@ export function createPublishingRoutes(
         c.env.MEDIA,
         request,
         c.get('actor'),
+        undefined,
+        c.env.APP_ENV === 'production' ? 'production' : 'preview',
       );
       return c.json({ capture }, capture.status === 'capturing' ? 202 : 200);
     })

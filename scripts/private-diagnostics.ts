@@ -81,6 +81,11 @@ export async function storeBuildDiagnostics(
   const config = diagnosticsStorageEnvSchema.parse(raw);
   const value = buildDiagnosticsSchema.parse(report);
   validateCaptureTime(value.capture, now);
+  if (
+    config.PUBLISH_R2_BUCKET !==
+    `mohamedeghboudj-media-${value.capture.environment}`
+  )
+    throw new Error('Diagnostic environment mismatch');
   if (Date.parse(value.createdAt) > now.getTime() + 60000)
     throw new Error('Future diagnostics');
   const body = JSON.stringify(value);

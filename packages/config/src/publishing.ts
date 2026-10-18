@@ -24,17 +24,20 @@ const secret = z
   .max(512)
   .regex(/^[^\r\n]+$/u);
 export const publishingEnvSchema = z.object({
-  APP_ENV: z.enum(['local', 'preview']),
+  APP_ENV: z.enum(['local', 'preview', 'production']),
   PUBLISH_BUILDS_ENABLED: z.literal('true'),
   PUBLISH_GITHUB_TOKEN: secret,
 });
 export const publishMaintenanceEnvSchema = z.object({
-  APP_ENV: z.enum(['local', 'preview']),
+  APP_ENV: z.enum(['local', 'preview', 'production']),
   PUBLISH_MAINTENANCE_ENABLED: z.literal('true'),
 });
 export const publishStorageEnvSchema = z.object({
   PUBLISH_R2_ACCOUNT_ID: z.string().regex(/^[a-f0-9]{32}$/u),
-  PUBLISH_R2_BUCKET: z.literal('mohamedeghboudj-media-preview'),
+  PUBLISH_R2_BUCKET: z.enum([
+    'mohamedeghboudj-media-preview',
+    'mohamedeghboudj-media-production',
+  ]),
   PUBLISH_R2_ACCESS_KEY_ID: secret,
   PUBLISH_R2_SECRET_ACCESS_KEY: secret,
 });

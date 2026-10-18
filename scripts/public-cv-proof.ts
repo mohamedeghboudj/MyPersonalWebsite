@@ -7,8 +7,12 @@ import { publicCvFixture } from '../tests/fixtures/public-cv.ts';
 import { verifyPublicCvs, cvDigest } from './cv-artifacts.ts';
 import { sealPublishInput } from './publish-input.ts';
 import { fetchCapturedInput } from './captured-input.ts';
-import { buildCapturedInput } from './private-build.ts';
-import { publishCapturePolicy } from '@platform/config';
+import {
+  buildCapturedInput,
+  privateNodeStage,
+  privateBuildEnvironment,
+} from './private-build.ts';
+import { publishCapturePolicy, publicationTargets } from '@platform/config';
 import { preparePreviewBundle, verifyPreviewBundle } from './preview-bundle.ts';
 
 const directory = resolve('artifacts/public-cv-proof');
@@ -77,6 +81,44 @@ if (process.argv[2] === 'prepare') {
   );
   if (verified.release.bundleSha256 !== bundle.release.bundleSha256)
     throw new Error('Synthetic private preview bundle mismatch');
+  // Reuse the actual compiler output from this exact snapshot, then exercise
+  // the public mode separately. No second compile or credential is required.
+  const publicInput = resolve(directory, 'publication-input');
+  await fetchCapturedInput(
+    {
+      ...verified.capture,
+      id: crypto.randomUUID(),
+      purpose: 'publish',
+      environment: 'production',
+    },
+    async () => new Response(sealed.body).body,
+    publicInput,
+  );
+  await privateNodeStage(
+    'site-build',
+    [resolve('node_modules/astro/bin/astro.mjs'), 'build'],
+    {
+      ...privateBuildEnvironment(),
+      SITE_MODE: 'production',
+      SITE_ORIGIN: publicationTargets.production.origin,
+      SITE_SNAPSHOT_PATH: resolve(publicInput, 'snapshot.json'),
+      SITE_MEDIA_SOURCE_DIR: resolve(publicInput, 'media'),
+      SITE_CV_OUTPUT_DIR: resolve(directory, 'cv'),
+    },
+    resolve(directory, 'publication-logs'),
+    resolve('apps/site'),
+  );
+  await preparePreviewBundle(
+    publicInput,
+    resolve(directory, 'cv'),
+    resolve('apps/site/dist'),
+    resolve(directory, 'publication-bundle'),
+    'publish',
+  );
+  await verifyPreviewBundle(
+    resolve(directory, 'publication-bundle'),
+    'publish',
+  );
   console.log('Synthetic immutable capture completed the private build path.');
 } else if (process.argv[2] === 'verify') {
   const snapshot = publicSnapshotSchema.parse(

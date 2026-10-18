@@ -19,6 +19,7 @@ export const publishCaptureFailures = ['interrupted', 'integrity'] as const;
 export const publishCaptureFailureSchema = z.enum(publishCaptureFailures);
 export const publishCaptureSummarySchema = publishCaptureRequestSchema
   .extend({
+    environment: z.enum(['preview', 'production']).default('preview'),
     sequence: z.number().int().positive(),
     status: publishCaptureStatusSchema,
     inputSha256: z.string().regex(/^[a-f0-9]{64}$/u),

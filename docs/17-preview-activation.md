@@ -1,5 +1,7 @@
 # Phase 3 — preview activation coordinator
 
+Current publishing implementation and live activation steps: [21-publishing-activation.md](21-publishing-activation.md). The earlier increment below is historical; public publishing is now implemented, while its live proof is still pending.
+
 The private preview now has an implemented candidate-upload path and an owner-authenticated activation API. This builds on the guard/package work already completed in `b450f82`; it does not redo that work. Remote activation remains disabled and unproven. The subsequent [console increment](19-preview-console.md) connects candidate discovery and preview controls; private reports follow in `20-private-build-diagnostics.md`, and production publishing remains pending.
 
 ## Upload and activation are separate

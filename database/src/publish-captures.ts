@@ -14,6 +14,9 @@ export const publishCaptures = sqliteTable(
     sequence: integer('sequence').primaryKey({ autoIncrement: true }),
     id: text('id').notNull().unique(),
     purpose: text('purpose', { enum: ['preview', 'publish'] }).notNull(),
+    environment: text('environment', { enum: ['preview', 'production'] })
+      .notNull()
+      .default('preview'),
     revision: integer('revision').notNull(),
     status: text('status', { enum: publishCaptureStatuses })
       .notNull()

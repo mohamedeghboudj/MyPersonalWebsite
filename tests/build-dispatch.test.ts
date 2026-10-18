@@ -339,7 +339,7 @@ describe('authenticated capture dispatch', () => {
         fetcher,
         clock,
       ),
-    ).rejects.toThrow('not configured');
+    ).rejects.toThrow('environment mismatch');
     await expect(
       requestCapturedBuild(
         local.content,

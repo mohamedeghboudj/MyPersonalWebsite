@@ -9,7 +9,7 @@ import {
   finishBuildDispatch,
   readPreviewFence,
 } from '@platform/database';
-import { previewPolicy } from '@platform/config';
+import { previewPolicy, publicationTargets } from '@platform/config';
 
 let local: Awaited<ReturnType<typeof localDatabase>>;
 let id: string, versionId: string, previousVersionId: string;
@@ -302,6 +302,8 @@ it('discovers only completed, owner-accessible preview captures and exposes no c
   expect(await status.json()).toEqual({
     available: false,
     previewUrl: previewPolicy.origin,
+    publishAvailable: false,
+    publicUrl: publicationTargets.preview.origin,
   });
   const enabled = await app.request(
     '/api/publishing/status',

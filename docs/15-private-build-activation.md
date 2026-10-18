@@ -1,5 +1,7 @@
 # Private captured build — activation handoff
 
+Current publishing implementation and live activation steps: [21-publishing-activation.md](21-publishing-activation.md). The earlier increment below is historical; public publishing is now implemented, while its live proof is still pending.
+
 The implementation is reviewable in draft PR #9. It validates a captured input, EN/FR/AR CVs and the static site, and packages preview captures for the new Access guard. The [activation review](17-preview-activation.md) records the subsequent gated upload and durable owner-only activation API. Neither is enabled remotely; a live browser preview remains unproven. Keep the complete Phase 3 PR in draft until the remaining publishing work is finished. This document prepares account steps without asking for a premature merge or launch.
 
 The owner's original project instructions reserve interactive login and account changes to the owner. Credential creation and secret entry therefore need the owner's terminal/dashboard. Never send their values in chat or put them in a tracked file. The existing spike deployment token has no R2 or GitHub Actions permissions and should not be broadened.

@@ -20,6 +20,7 @@ const capture: CapturedBuild = {
   schemaVersion: 1,
   id: crypto.randomUUID(),
   purpose: 'preview',
+  environment: 'preview',
   sequence: 1,
   revision: 0,
   inputSha256: 'a'.repeat(64),

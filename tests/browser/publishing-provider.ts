@@ -6,23 +6,50 @@ import {
   buildDiagnosticsSchema,
 } from '@platform/schema';
 import type { CapturedBuild, PreviewRelease } from '@platform/schema';
-import { previewPolicy } from '@platform/config';
+import { previewPolicy, publicationPolicy } from '@platform/config';
 
 export function syntheticPublisher(bucket: Pick<R2Bucket, 'put'>) {
   const versions = new Map<
     string,
-    { createdAt: string; release: PreviewRelease | null }
+    {
+      createdAt: string;
+      release: PreviewRelease | null;
+      purpose: 'preview' | 'publish';
+    }
   >();
   const runs = new Map<number, CapturedBuild>();
   let active = crypto.randomUUID() as string;
-  versions.set(active, { createdAt: new Date().toISOString(), release: null });
+  versions.set(active, {
+    createdAt: new Date().toISOString(),
+    release: null,
+    purpose: 'preview',
+  });
   let deployment = {
     id: crypto.randomUUID(),
     created_on: new Date().toISOString(),
     versions: [{ version_id: active, percentage: 100 }],
   };
+  const publicBootstrap = crypto.randomUUID();
+  versions.set(publicBootstrap, {
+    createdAt: new Date().toISOString(),
+    release: null,
+    purpose: 'publish',
+  });
+  const deployments = new Map([
+    ['preview', deployment],
+    [
+      'publish',
+      {
+        ...deployment,
+        id: crypto.randomUUID(),
+        versions: [{ version_id: publicBootstrap, percentage: 100 }],
+      },
+    ],
+  ]);
   const env = {
     PUBLISH_BUILDS_ENABLED: 'true',
+    PUBLISH_DEPLOYMENTS_ENABLED: 'true',
+    PUBLISH_CLOUDFLARE_API_TOKEN: 'synthetic-public-cloudflare-credential',
     PUBLISH_GITHUB_TOKEN: 'synthetic-github-credential',
     PREVIEW_ACTIVATION_ENABLED: 'true',
     PREVIEW_ACCESS_AUDIENCE: 'synthetic-preview-audience',
@@ -77,6 +104,7 @@ export function syntheticPublisher(bucket: Pick<R2Bucket, 'put'>) {
           JSON.stringify(report),
         );
         versions.set(crypto.randomUUID(), {
+          purpose: capture.purpose,
           createdAt: new Date().toISOString(),
           release: {
             schemaVersion: 1,
@@ -101,6 +129,9 @@ export function syntheticPublisher(bucket: Pick<R2Bucket, 'put'>) {
     },
     cloudflare: async (request: Request) => {
       const url = new URL(request.url);
+      const purpose = url.pathname.includes('/mohamedeghboudj-site-preview/')
+        ? 'preview'
+        : 'publish';
       if (request.method === 'POST') {
         const body = (await request.json()) as {
           versions: { version_id: string }[];
@@ -112,6 +143,7 @@ export function syntheticPublisher(bucket: Pick<R2Bucket, 'put'>) {
           created_on: new Date().toISOString(),
           versions: [{ version_id: active, percentage: 100 }],
         };
+        deployments.set(purpose, deployment);
         return Response.json({
           success: true,
           result: { ...deployment, strategy: 'percentage' },
@@ -120,35 +152,64 @@ export function syntheticPublisher(bucket: Pick<R2Bucket, 'put'>) {
       if (url.pathname.endsWith('/deployments'))
         return Response.json({
           success: true,
-          result: { deployments: [deployment] },
+          result: { deployments: [deployments.get(purpose)] },
         });
       if (url.pathname.endsWith('/versions'))
         return Response.json({
           success: true,
           result: {
-            items: [...versions].map(([id, value]) => ({
-              id,
-              metadata: { created_on: value.createdAt },
-            })),
+            items: [...versions]
+              .filter(([, value]) => value.purpose === purpose)
+              .map(([id, value]) => ({
+                id,
+                metadata: { created_on: value.createdAt },
+              })),
           },
         });
       const id = url.pathname.split('/').at(-1)!,
         value = versions.get(id);
-      if (!value) return new Response(null, { status: 404 });
+      if (!value || value.purpose !== purpose)
+        return new Response(null, { status: 404 });
       return Response.json({
         success: true,
         result: {
           id,
+          annotations:
+            purpose === 'publish'
+              ? {
+                  'workers/message': value.release
+                    ? JSON.stringify(value.release)
+                    : publicationPolicy.bootstrap,
+                }
+              : {},
           resources: {
-            bindings: Object.entries({
-              APP_ENV: 'preview',
-              ACCESS_ISSUER: 'https://test.cloudflareaccess.com',
-              ACCESS_AUDIENCE: env.PREVIEW_ACCESS_AUDIENCE,
-              OWNER_EMAIL: 'owner@example.com',
-              PREVIEW_RELEASE: value.release
-                ? JSON.stringify(value.release)
-                : previewPolicy.bootstrap,
-            }).map(([name, text]) => ({ type: 'plain_text', name, text })),
+            ...(purpose === 'publish'
+              ? {
+                  script: { etag: '', handlers: null },
+                  script_runtime: {
+                    assets: {
+                      serve_directly: true,
+                      raw_run_worker_first: false,
+                    },
+                  },
+                }
+              : {}),
+            bindings:
+              purpose === 'publish'
+                ? []
+                : Object.entries({
+                    APP_ENV: 'preview',
+                    ACCESS_ISSUER: 'https://test.cloudflareaccess.com',
+                    ACCESS_AUDIENCE: env.PREVIEW_ACCESS_AUDIENCE,
+                    OWNER_EMAIL: 'owner@example.com',
+                    PREVIEW_RELEASE: value.release
+                      ? JSON.stringify(value.release)
+                      : previewPolicy.bootstrap,
+                  }).map(([name, text]) => ({
+                    type: 'plain_text',
+                    name,
+                    text,
+                  })),
           },
         },
       });

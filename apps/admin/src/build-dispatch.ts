@@ -62,6 +62,11 @@ export async function requestCapturedBuild(
   }
   const capture = await readPublishCapture(binding, id);
   if (!capture) throw new PublishCaptureError('Capture not found.', 404);
+  if (
+    capture.environment !==
+    (config.APP_ENV === 'production' ? 'production' : 'preview')
+  )
+    throw new PublishCaptureError('Capture environment mismatch.', 409);
   if (capture.status !== 'ready' || capture.expiresAt <= now.toISOString())
     throw new PublishCaptureError(
       'Prepare a ready, unexpired capture before requesting a build.',

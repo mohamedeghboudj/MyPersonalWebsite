@@ -1,3 +1,4 @@
+import { advancePublication } from '../../apps/admin/src/publication-queue.ts';
 // Synthetic, ephemeral browser-test server. This file is outside every Worker
 // entry point and binds only to loopback; it has no remote IDs or credentials.
 import { createServer } from 'node:http';
@@ -22,6 +23,15 @@ const admin = createAdmin(
   publisher.github,
   publisher.cloudflare,
 );
+// A local accelerated clock exercises the real coordinator with synthetic providers.
+const publicationTimer = setInterval(() => {
+  void advancePublication(
+    local.content,
+    { APP_ENV: 'local', ...publisher.env },
+    publisher.github,
+    publisher.cloudflare,
+  ).catch(() => undefined);
+}, 500);
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', origin);
@@ -87,6 +97,7 @@ const server = createServer(async (req, res) => {
           JSON.stringify({
             ...((await response.json()) as object),
             previewUrl: origin + '/__simulated-publishing',
+            publicUrl: origin + '/__simulated-publishing',
           }),
         );
       } else if (
@@ -129,6 +140,7 @@ server.listen(4173, '127.0.0.1', () =>
   console.log('Synthetic console test server ready on loopback:4173'),
 );
 async function stop() {
+  clearInterval(publicationTimer);
   server.closeAllConnections();
   server.close();
   await local.runtime.dispose();

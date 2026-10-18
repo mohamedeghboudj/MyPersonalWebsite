@@ -3,6 +3,9 @@ import {
   boundedBytes,
   previewInspectionEnvSchema,
   previewPolicy,
+  publicationInspectionEnvSchema,
+  publicationTargets,
+  publicationPolicy,
 } from '@platform/config';
 import {
   previewReleaseSchema,
@@ -32,7 +35,12 @@ const versionSchema = z.object({
   success: z.literal(true),
   result: z.object({
     id: z.uuid(),
+    annotations: z
+      .object({ 'workers/message': z.string().optional() })
+      .optional(),
     resources: z.object({
+      script: z.unknown().optional(),
+      script_runtime: z.unknown().optional(),
       bindings: z
         .array(
           z.object({
@@ -41,7 +49,9 @@ const versionSchema = z.object({
             text: z.string().optional(),
           }),
         )
-        .max(100),
+        .max(100)
+        .optional()
+        .default([]),
     }),
   }),
 });
@@ -57,9 +67,17 @@ export type PreviewFetch = (request: Request) => Promise<Response>;
 export function previewCloudflareReader(
   raw: unknown,
   send: PreviewFetch = (request) => fetch(request),
+  purpose: 'preview' | 'publish' = 'preview',
 ) {
-  const config = previewInspectionEnvSchema.parse(raw);
-  const base = `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${previewPolicy.workerName}`;
+  const config =
+    purpose === 'preview'
+      ? previewInspectionEnvSchema.parse(raw)
+      : publicationInspectionEnvSchema.parse(raw);
+  const workerName =
+    'DEPLOYMENT_ENVIRONMENT' in config
+      ? publicationTargets[config.DEPLOYMENT_ENVIRONMENT].workerName
+      : previewPolicy.workerName;
+  const base = `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${workerName}`;
   async function get(path: string) {
     const response = await send(
       new Request(base + path, {
@@ -92,6 +110,25 @@ export function previewCloudflareReader(
       await get(`/versions/${versionId}`),
     ).result;
     if (data.id !== versionId) throw new Error('Version identity mismatch');
+    if ('DEPLOYMENT_ENVIRONMENT' in config) {
+      // The live assets-only API shape has no user script or fetch handlers.
+      // Do not accept a copied annotation on a runtime Worker deployment.
+      z.object({
+        script: z.object({ etag: z.literal(''), handlers: z.null() }),
+        script_runtime: z.object({
+          assets: z.object({
+            serve_directly: z.literal(true),
+            raw_run_worker_first: z.literal(false),
+          }),
+        }),
+      }).parse(data.resources);
+      if (data.resources.bindings.length)
+        throw new Error('Public static target has unexpected bindings');
+      const receipt = data.annotations?.['workers/message'];
+      return receipt === publicationPolicy.bootstrap
+        ? null
+        : previewReleaseSchema.parse(JSON.parse(receipt ?? ''));
+    }
     function value(name: string) {
       const matches = data.resources.bindings.filter(
         (binding) => binding.name === name,
@@ -229,8 +266,9 @@ export function previewCloudflareReader(
 export function previewDeploymentReader(
   raw: unknown,
   send: PreviewFetch = (request) => fetch(request),
+  purpose: 'preview' | 'publish' = 'preview',
 ) {
-  return previewCloudflareReader(raw, send).current;
+  return previewCloudflareReader(raw, send, purpose).current;
 }
 
 // This transport is called only by the owner-gated coordinator's insert winner.
@@ -239,13 +277,21 @@ export async function activatePreviewVersion(
   raw: unknown,
   versionId: string,
   send: PreviewFetch = (request) => fetch(request),
+  purpose: 'preview' | 'publish' = 'preview',
 ): Promise<PreviewActivation> {
-  const config = previewInspectionEnvSchema.parse(raw);
+  const config =
+    purpose === 'preview'
+      ? previewInspectionEnvSchema.parse(raw)
+      : publicationInspectionEnvSchema.parse(raw);
+  const workerName =
+    'DEPLOYMENT_ENVIRONMENT' in config
+      ? publicationTargets[config.DEPLOYMENT_ENVIRONMENT].workerName
+      : previewPolicy.workerName;
   versionId = z.uuid().parse(versionId);
   try {
     const response = await send(
       new Request(
-        `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${previewPolicy.workerName}/deployments`,
+        `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${workerName}/deployments`,
         {
           method: 'POST',
           redirect: 'manual',

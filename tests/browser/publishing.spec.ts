@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 async function open(page: Page) {
   await page.goto('/');
-  await page.getByText('Website preview', { exact: true }).click();
+  await page.getByText('Website publishing', { exact: true }).click();
   await expect(
     page.getByRole('button', { name: 'Prepare saved content' }),
   ).toBeEnabled();
@@ -16,6 +16,59 @@ async function prepare(page: Page) {
   ).toBeVisible();
   return page.getByLabel('Saved previews').inputValue();
 }
+test('publishes saved content after a lost response and page closure, then recovers its verified status and private report', async ({
+  page,
+}) => {
+  const ids: string[] = [];
+  await page.route('**/api/publishing/publish', async (route) => {
+    ids.push(route.request().postDataJSON().id as string);
+    const response = await route.fetch();
+    if (ids.length === 1) return route.abort('failed');
+    return route.fulfill({ response });
+  });
+  await open(page);
+  await page
+    .getByRole('button', { name: 'Publish saved content', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Retry publication request' }).click();
+  expect(ids).toHaveLength(2);
+  expect(ids[1]).toBe(ids[0]);
+  await page.goto('/__simulated-publishing');
+  // No open console or status polling is needed by the scheduled coordinator.
+  await expect
+    .poll(async () =>
+      (await page.request.get(`/api/publishing/captures/${ids[0]}/publication`))
+        .json()
+        .then((value) => value.publication.status),
+    )
+    .toBe('published');
+  await open(page);
+  await page.getByLabel('Saved previews').selectOption(ids[0]!);
+  await expect(
+    page.getByRole('link', { name: 'Open public website', exact: true }),
+  ).toHaveAttribute('href', 'http://127.0.0.1:4173/__simulated-publishing');
+  await page.getByRole('button', { name: 'Read private build report' }).click();
+  await expect(
+    page.getByRole('link', { name: 'Download private report' }),
+  ).toBeVisible();
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({
+    path: 'artifacts/publication-desktop.png',
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({
+    path: 'artifacts/publication-mobile.png',
+    fullPage: true,
+  });
+});
 test('loads preview controls on demand and distinguishes build success from the current preview', async ({
   page,
 }) => {
@@ -28,7 +81,10 @@ test('loads preview controls on demand and distinguishes build success from the 
     'Profile',
   );
   expect(scripts.some((url) => url.includes('/publishing-'))).toBe(false);
-  await page.locator('summary').filter({ hasText: 'Website preview' }).focus();
+  await page
+    .locator('summary')
+    .filter({ hasText: 'Website publishing' })
+    .focus();
   await page.keyboard.press('Enter');
   await expect(
     page.getByRole('button', { name: 'Prepare saved content' }),
@@ -139,7 +195,7 @@ test('retries a lost capture response with the same ID and restores its state af
   expect(ids).toHaveLength(2);
   expect(ids[1]).toBe(ids[0]);
   await page.reload();
-  await page.getByText('Website preview', { exact: true }).click();
+  await page.getByText('Website publishing', { exact: true }).click();
   await page.getByLabel('Saved previews').selectOption(ids[0]!);
   await expect(
     page.getByRole('button', { name: 'Start private build' }),

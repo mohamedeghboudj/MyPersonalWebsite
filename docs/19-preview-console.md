@@ -1,5 +1,7 @@
 # Phase 3 — console preview controls
 
+Current publishing implementation and live activation steps: [21-publishing-activation.md](21-publishing-activation.md). The earlier increment below is historical; public publishing is now implemented, while its live proof is still pending.
+
 This increment connects the already implemented capture, build and activation services to an owner-facing **Website preview** panel. It does not repeat the coordinator/package work and does not enable production publishing. The panel prepares saved content, starts its private build, discovers the corresponding uploaded version, activates it on explicit request and verifies the exact currently serving version before offering its link.
 
 ## Discovery and state

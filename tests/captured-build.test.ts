@@ -251,12 +251,16 @@ describe('R2 read-only transport and private diagnostics', () => {
       ...process.env,
       PUBLISH_R2_SECRET_ACCESS_KEY: 'synthetic-hidden-secret',
       CLOUDFLARE_API_TOKEN: 'synthetic-hidden-token',
+      PUBLISH_CLOUDFLARE_API_TOKEN: 'synthetic-public-token',
+      PUBLISH_GITHUB_TOKEN: 'synthetic-github-token',
       DIAGNOSTICS_R2_ACCESS_KEY_ID: 'synthetic-report-access',
       DIAGNOSTICS_R2_SECRET_ACCESS_KEY: 'synthetic-report-secret',
       NODE_OPTIONS: '--expose-gc',
     });
     expect(env).not.toHaveProperty('PUBLISH_R2_SECRET_ACCESS_KEY');
     expect(env).not.toHaveProperty('CLOUDFLARE_API_TOKEN');
+    expect(env).not.toHaveProperty('PUBLISH_CLOUDFLARE_API_TOKEN');
+    expect(env).not.toHaveProperty('PUBLISH_GITHUB_TOKEN');
     expect(env).not.toHaveProperty('DIAGNOSTICS_R2_ACCESS_KEY_ID');
     expect(env).not.toHaveProperty('DIAGNOSTICS_R2_SECRET_ACCESS_KEY');
     expect(env).not.toHaveProperty('NODE_OPTIONS');
@@ -282,7 +286,7 @@ describe('R2 read-only transport and private diagnostics', () => {
       'synthetic-success',
       [
         '--eval',
-        'if (process.env.PUBLISH_R2_SECRET_ACCESS_KEY || process.env.CLOUDFLARE_API_TOKEN || process.env.DIAGNOSTICS_R2_ACCESS_KEY_ID || process.env.DIAGNOSTICS_R2_SECRET_ACCESS_KEY || process.env.NODE_OPTIONS) process.exit(1);',
+        'if (process.env.PUBLISH_CLOUDFLARE_API_TOKEN || process.env.PUBLISH_GITHUB_TOKEN || process.env.PUBLISH_R2_SECRET_ACCESS_KEY || process.env.CLOUDFLARE_API_TOKEN || process.env.DIAGNOSTICS_R2_ACCESS_KEY_ID || process.env.DIAGNOSTICS_R2_SECRET_ACCESS_KEY || process.env.NODE_OPTIONS) process.exit(1);',
       ],
       env,
       logs,
