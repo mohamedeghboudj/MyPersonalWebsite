@@ -45,7 +45,7 @@ jobs:
       - run: node scripts/public-cv-proof.ts verify
       # Synthetic spike payloads only. Never reuse this public artifact step for
       # an owner's private company/role variants or unpublished content.
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
           name: synthetic-trilingual-cv-proof
