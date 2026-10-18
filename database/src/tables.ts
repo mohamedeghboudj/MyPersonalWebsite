@@ -204,3 +204,18 @@ export const outbox = sqliteTable(
     index('outbox_status').on(table.status),
   ],
 );
+export const auditChanges = sqliteTable('audit_changes', {
+  id: text('id').primaryKey(),
+  beforeHash: text('before_hash'),
+  afterHash: text('after_hash'),
+});
+export const auditChangeFields = sqliteTable(
+  'audit_change_fields',
+  {
+    changeId: text('change_id')
+      .notNull()
+      .references(() => auditChanges.id),
+    field: text('field').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.changeId, t.field] })],
+);

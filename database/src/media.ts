@@ -41,3 +41,9 @@ export const mediaTranslations = sqliteTable(
     index('media_locale').on(t.locale),
   ],
 );
+export const mediaCleanup = sqliteTable('media_cleanup', {
+  r2Key: text('r2_key').primaryKey(),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});

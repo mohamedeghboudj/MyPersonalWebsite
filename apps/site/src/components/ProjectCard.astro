@@ -1,0 +1,64 @@
+---
+import type { Locale, PublicSnapshot } from '@platform/schema';
+import { resolveTranslation, direction, routePath } from '../lib/content';
+import PublicMedia from './PublicMedia.astro';
+interface Props {
+  project: PublicSnapshot['projects'][number];
+  snapshot: PublicSnapshot;
+  locale: Locale;
+  heading?: 'h2' | 'h3';
+}
+const { project, snapshot, locale } = Astro.props;
+const Heading = Astro.props.heading ?? 'h2';
+const translated = resolveTranslation(project.translations, locale);
+const categories = snapshot.projectCategories.filter((category) =>
+  project.categoryIds.includes(category.id),
+);
+---
+
+<article
+  class="project-card"
+  lang={translated.locale}
+  dir={direction(translated.locale)}
+  data-content-id={project.id}
+>
+  <PublicMedia
+    id={project.coverMediaId}
+    snapshot={snapshot}
+    locale={locale}
+    variant="card"
+  />
+  <div class="project-card-top">
+    <p class="metadata muted">
+      {categories.map((category, index) => {
+        const label = resolveTranslation(category.translations, locale);
+        return (
+          <>
+            {index > 0 && ' / '}
+            <span lang={label.locale} dir={direction(label.locale)}>
+              {label.name}
+            </span>
+          </>
+        );
+      })}
+    </p>
+    <span class="project-arrow" aria-hidden="true">
+      ↗
+    </span>
+  </div>
+  <Heading class="project-title">
+    <a href={routePath(locale, `projects/${project.slug}`)}>
+      {translated.title}
+    </a>
+  </Heading>
+  <p>{translated.summary}</p>
+  <ul class="inline-list metadata muted">
+    {snapshot.technologies
+      .filter((technology) => project.technologyIds.includes(technology.id))
+      .map((technology) => (
+        <li>
+          <bdi>{technology.name}</bdi>
+        </li>
+      ))}
+  </ul>
+</article>

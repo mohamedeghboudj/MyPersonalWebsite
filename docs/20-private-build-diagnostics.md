@@ -1,0 +1,42 @@
+# Phase 3 — private build diagnostics
+
+Current publishing implementation and live activation steps: [21-publishing-activation.md](21-publishing-activation.md). The earlier increment below is historical; public publishing is now implemented, while its live proof is still pending.
+
+The console can read a private report for a completed captured build, including a failed compile. The report contains the capture descriptor, exact GitHub run/attempt, stage outcomes and bounded output from the three credential-free build stages. It is diagnostic evidence only: it cannot authorize an upload, activation or publication, and its reported outcomes never replace provider verification.
+
+## Collection and storage
+
+The workflow records retrieval, build, packaging and upload outcomes. After those steps finish, a separately gated reporting step reads only `cv-prepare.log`, `cv-compile.log` and `site-build.log` from the private log directory. It retains at most the final 64 KiB from each file and marks truncation. Missing files remain absent. Symlink directories/files and non-files are rejected; opened-file identity is checked. Terminal control sequences are removed, while ordinary compiler text, including Arabic, stays intact. No glob can collect provider logs, original media, raw snapshots, TeX sources or credentials. The report is capped at 1 MiB.
+
+The shared workflow-context reader checks GitHub's [default workflow variables](https://docs.github.com/en/actions/reference/workflows-and-actions/variables) for owner-triggered `workflow_dispatch`, the exact repository/workflow on `main`, a matching capture ID and a positive run/attempt. Captures must still be within their original 24-hour lifetime. This also strengthens the existing input-retrieval entry point. The compiler continues receiving only the OS/toolchain allowlist and local paths; diagnostic write credentials appear in a later step and never reach compiler children. The existing stage recorder caps each local log at 2 MiB and fails on overflow; a report is a bounded excerpt, not a promise of complete process output.
+
+The reporting step uses the existing pinned `aws4fetch` signer and the fixed private preview bucket. It creates `publish-inputs/<capture-id>.diagnostics.<run-id>.<attempt>.json` with `If-None-Match: *`, then verifies exact byte readback. Cloudflare documents [atomic conditional PutObject support](https://developers.cloudflare.com/r2/api/s3/api/). A duplicate key is accepted only when the existing report matches exactly. Redirects are refused and an ambiguous write is not retried. Public Actions output contains fixed status text only. Reporting failure does not invalidate an otherwise verified build, and always-run workspace cleanup still follows it. No report becomes a public Actions artifact or static site file.
+
+## Owner access and retention
+
+`GET /api/publishing/captures/:id/diagnostics` inherits the existing independent Access JWT/email checks and no-store headers. It reads the capture and queued dispatch from D1, then verifies the corresponding completed GitHub run and its explicit `run_attempt`. GitHub's [workflow-run API](https://docs.github.com/en/rest/actions/workflow-runs#get-a-workflow-run) supplies that attempt; a missing attempt, different workflow/ref, unfinished run or missing report fails closed. A rerun cannot silently substitute the previous attempt's report. Both documented workflow path forms (plain and `@main`) are accepted; another ref is refused.
+
+The response must match every field of the D1 capture descriptor, the recorded run ID and the provider's attempt. Size, strict schema, timestamp and expiry are checked before return. Responses are attachment JSON with `nosniff`, a sandboxed `default-src 'none'` policy and no caching. Storage/provider errors never echo private report content. This read-only endpoint neither dispatches work nor modifies content/audit history. Expired captures return HTTP 410 even if physical cleanup has not run yet.
+
+Reports share the existing bounded `publish-inputs/` retention scan and durable cursor. Only canonical report keys are eligible. Known captures use their ledger expiry; untracked report keys receive a full 24-hour age allowance. Late writes after expiry are removed on a later scan. The current five-reservation/20-object bounds and minimal reconciliation audit remain unchanged. Physical cleanup is eventual, not a promise of deletion at the exact expiry second. Original media, inbox data, malformed/unrelated keys and live reports remain outside deletion.
+
+## Console and reference review
+
+The Website preview panel offers **Read private build report** only for a completed, unexpired build. Missing reporting setup, an interrupted job and an unavailable report have an honest status message. The report identifies its attempt and creation time; each available log uses a native collapsed disclosure and escaped, wrapping text. Its bounded reading area uses native scrolling and accepts keyboard focus, so long output does not push all actions far down the page. A download link retrieves the same authenticated attachment. It never opens an external window automatically or executes log markup.
+
+The panel retains the shared flat relation surface, caption/monospace tokens and minimum summary touch target from `06`/`19`. Logs wrap within the reading area instead of creating horizontal scroll. No new color, decoration or motion is introduced. Public templates and the hero/timeline/project design remain unchanged. Desktop/mobile screenshot review led to bounding the log height and adding keyboard focus; screenshots are `artifacts/diagnostics-desktop.png` and `artifacts/diagnostics-mobile.png`.
+
+## Activation and validation
+
+Implementation remains on draft PR #9; no remote credentials, resource or configuration were changed. After the reviewed workflow is on `main`, the owner can enable reporting as part of the isolated preview setup:
+
+1. In Cloudflare R2, create a separate API credential with **Object Read & Write** on **only `mohamedeghboudj-media-preview`**. Read access is needed for exact readback. Keep the existing publish retrieval credential read-only. Standard bucket-scoped credentials cannot enforce this script's exact-key restriction; the writer code is deliberately limited to report keys.
+2. Add its values directly to GitHub Actions secrets as `DIAGNOSTICS_R2_ACCESS_KEY_ID` and `DIAGNOSTICS_R2_SECRET_ACCESS_KEY`. Reuse the existing `CLOUDFLARE_ACCOUNT_ID` secret. Do not put values in chat, commands committed to the repository, or public logs.
+3. Set repository variable `PUBLISH_DIAGNOSTICS_ENABLED=true` and retain the existing `PUBLISH_MAINTENANCE_ENABLED=true` requirement for the admin's scheduled cleanup. No new public bucket, CORS rule or Access bypass is required.
+4. Prove a successful and a deliberately failing synthetic build through the protected console; verify the correct attempt, private download, anonymous denial and scheduled removal. This is still a live integration gate, not established by local simulations.
+
+All **197 tests across 28 files** pass locally, including 13 new diagnostic/retention cases. An additional targeted recheck passes after adding the new credential names to the actual child-process isolation test. TypeScript, lint and formatting pass. The admin Worker dry-run is 1,387.59 KiB (248.35 KiB gzip); no deployment occurs.
+
+All **eight console browser flows** pass. The added report flow verifies missing reports, literal hostile markup without execution, the actual attachment download and JSON contents, desktop/mobile axe checks, 390px containment and reduced motion. It passes again after bounding the log area, including keyboard PageDown scrolling. Browser JavaScript remains **249,328 initial / 257,436 complete bytes** (8,108 deferred), inside the existing initial/deferred/complete caps. These are synthetic local checks; current-head GitHub checks are tracked in draft PR #9 and live report credentials/delivery/expiry remain unproven.
+
+Next Phase 3 work: production publishing and its console action, then live credentials, private Access/upload/activation/diagnostic/retention proof and measured end-to-end latency. The [project completion checklist](18-completion-checklist.md) retains later contact, private-CV, motion, quality and launch gates.

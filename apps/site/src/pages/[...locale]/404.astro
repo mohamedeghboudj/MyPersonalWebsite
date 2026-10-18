@@ -1,0 +1,42 @@
+---
+import {
+  readSnapshot,
+  locales,
+  resolveTranslation,
+  direction,
+  routePath,
+} from '../../lib/content';
+import type { Locale, PublicSnapshot } from '@platform/schema';
+import PublicLayout from '../../layouts/PublicLayout.astro';
+
+export async function getStaticPaths() {
+  const snapshot = await readSnapshot();
+  if (snapshot.schemaVersion !== 2) return [];
+  return locales.map((locale) => ({
+    params: { locale: locale === 'en' ? undefined : locale },
+    props: { locale, snapshot },
+  }));
+}
+const { locale, snapshot } = Astro.props as {
+  locale: Locale;
+  snapshot: PublicSnapshot;
+};
+const copy = resolveTranslation(snapshot.siteCopy, locale);
+---
+
+<PublicLayout snapshot={snapshot} locale={locale} path="404" notFound>
+  <section
+    class="container section"
+    lang={copy.locale}
+    dir={direction(copy.locale)}
+  >
+    <div class="page-intro">
+      <p class="metadata">404</p>
+      <h1>{copy.values.notFoundHeading}</h1>
+      <p>{copy.values.notFoundBody}</p>
+      <a class="button-link" href={routePath(locale)}>
+        {copy.values.returnHome}
+      </a>
+    </div>
+  </section>
+</PublicLayout>

@@ -7,3 +7,6 @@ onlyBuiltDependencies:
   - esbuild
   - sharp
   - workerd
+overrides:
+  # GHSA-wq5f-xc86-pv6w: Miniflare still pins the affected 0.35.4 build.
+  sharp: 0.35.5

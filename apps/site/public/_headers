@@ -5,3 +5,8 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'
   X-Robots-Tag: noindex, nofollow
+
+/documents/*
+  Content-Type: application/octet-stream
+  Content-Disposition: attachment; filename="document.pdf"
+  Content-Security-Policy: sandbox; default-src 'none'

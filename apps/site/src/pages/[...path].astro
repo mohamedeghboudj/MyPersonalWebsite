@@ -1,0 +1,30 @@
+---
+import { readSnapshot, locales, routes, routePath } from '../lib/content';
+import type { Locale } from '@platform/schema';
+import LegacyProof from '../components/LegacyProof.astro';
+import Portfolio from '../components/Portfolio.astro';
+
+export async function getStaticPaths() {
+  const snapshot = await readSnapshot();
+  const paths = snapshot.schemaVersion === 2 ? routes(snapshot) : [''];
+  return locales.flatMap((locale) =>
+    paths.map((path) => ({
+      params: {
+        path: routePath(locale, path).replace(/^\/+|\/+$/gu, '') || undefined,
+      },
+      props: { locale, path, snapshot },
+    })),
+  );
+}
+const { locale, path, snapshot } = Astro.props as {
+  locale: Locale;
+  path: string;
+  snapshot: Awaited<ReturnType<typeof readSnapshot>>;
+};
+---
+
+{snapshot.schemaVersion === 2 ? (
+  <Portfolio locale={locale} path={path} snapshot={snapshot} />
+) : (
+  <LegacyProof locale={locale} snapshot={snapshot} />
+)}

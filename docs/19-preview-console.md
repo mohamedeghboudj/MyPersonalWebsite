@@ -1,0 +1,33 @@
+# Phase 3 — console preview controls
+
+Current publishing implementation and live activation steps: [21-publishing-activation.md](21-publishing-activation.md). The earlier increment below is historical; public publishing is now implemented, while its live proof is still pending.
+
+This increment connects the already implemented capture, build and activation services to an owner-facing **Website preview** panel. It does not repeat the coordinator/package work and does not enable production publishing. The panel prepares saved content, starts its private build, discovers the corresponding uploaded version, activates it on explicit request and verifies the exact currently serving version before offering its link.
+
+## Discovery and state
+
+The owner-only `GET /api/publishing/status` returns a configuration-readiness boolean and the fixed preview origin, without secrets. `GET /api/publishing/preview` reads the verified currently active preview. `GET /api/publishing/captures/:id/candidate` requires a ready, unexpired preview capture and a successful corresponding GitHub run before discovery; it never accepts identity or hashes from the browser.
+
+Discovery follows Cloudflare's [deployable version listing](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/versions/methods/list/). The result is bounded to 100 IDs, filtered to the capture's lifetime, then capped at 20 detailed reads to stay below the Free subrequest allowance. Each inspected version must have the expected preview identity bindings. A match requires the capture ID, sequence, content revision and snapshot hash. Duplicate IDs, conflicting receipts, more than one matching upload, malformed responses or an over-budget search fail closed. There is no newest-version guess or trust in an arbitrary tag. An empty result means no candidate was verified, not permission to activate another version. A new capture narrows the time window after excessive versions or reruns.
+
+Capture, build and activation remain distinct in the interface. New captures exclude unsaved edits and use a stable UUID across an uncertain response. A definitive validation/revision rejection allows a fresh request; an unknown result retains the same ID. Existing captures can be selected after reloading. Reads poll only while a build is in progress and the tab is visible. Recovery writes and activation remain explicit actions, with the existing recent-login checks and Session recovery links. Stale asynchronous reads cannot replace a newly selected capture's state.
+
+The panel never opens an external window automatically. A link appears only when the selected capture and its exact version match the provider's current deployment. An older historical `deployed` record is not presented as the current preview. Failed builds, absent uploads and uncertain activations have different messages/actions. Pending activation recovery uses the coordinator's evidence check without repeating its deployment POST.
+
+## Layout and loading review
+
+The panel uses the existing flat relation surface, labels, controls, spacing tokens and status/error presentation. It is collapsed by default and loads its code only when opened; drafts stay in the editor and the shared Access recovery stays available. No gradient, shadow, blur, custom scroll or motion is added. The chosen patterns remain the quiet editor hierarchy from briefs `02`/`04` and the console comparison in `06-design-reference-review.md`. Public templates and the three future signature moments are unchanged.
+
+The initial implementation loaded the panel eagerly and exceeded the existing 250 kB editor budget. It was revised to an on-demand module. The build records its actual static import graph outside the served tree; the asset check walks that graph and retains **250,000 bytes for the initial editor**, with an explicit **10,000-byte allowance for deferred publishing controls** and a **260,000-byte complete-console cap**. This is a documented extension of the foundation's total-bundle check for a new feature, not a change to public-site performance budgets. Every chunk still receives the server-configuration leak check. Merely splitting eagerly imported code cannot evade the initial budget.
+
+The synthetic loopback browser server exercises actual capture/build/coordinator services and D1/R2 using fake external provider transports. It never sends GitHub/Cloudflare requests or compiles a CV. Its banner labels publishing as simulated, and its build/preview links remain on localhost. These tests prove UI/service wiring and recovery behavior; they do not establish actual Access, upload, compiled output or live latency.
+
+## Validation and next work
+
+Five added API/transport tests cover bounded discovery, exact receipts, ambiguous sets, unavailable providers, readiness and owner gates. All **184 tests across 26 files** pass locally. TypeScript, lint, formatting and the asset/CSP checks pass. The admin Worker dry-run bundles at 1,381.53 KiB (247.13 KiB gzip); this does not deploy it.
+
+All seven console browser flows pass, including three new flows for deferred loading, build-versus-live state, a lost capture response with exact retry, reload recovery, reauthentication and reconciliation without a second activation. After inspecting the desktop/mobile screenshots, the saved-preview label received its own spaced field row and the summary received the shared minimum touch target. The three publishing flows passed again after those changes, including keyboard opening, reduced motion, 390px containment and axe checks. Evidence: `artifacts/publishing-desktop.png` and `artifacts/publishing-mobile.png`. These are synthetic Chromium captures, not live Access or real-device evidence.
+
+Final browser JavaScript is **249,328 initial / 256,084 complete bytes**, with 6,756 bytes deferred until the panel opens. No dependencies or public templates changed. The preceding coordinator/upload commit `6038b8d` passed [Platform checks](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/39024826568) and [full TeX Live proof](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/39024826659); the console increment receives its own current-head checks on draft PR #9.
+
+The following [private diagnostics increment](20-private-build-diagnostics.md) adds build reports. Still required: the production publish path and its console action, remote preview configuration/migrations, separate preview Access/MFA proof, live upload/activation/diagnostic/retention checks and measured save-to-live latency. No remote resource or domain change is part of this console increment. The project-wide gates remain in [the completion checklist](18-completion-checklist.md).

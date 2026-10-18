@@ -1,6 +1,18 @@
 import { z } from 'zod';
+export * from './editor.ts';
+export * from './media-input.ts';
+export * from './public-snapshot.ts';
+export * from './publish-input.ts';
+export * from './publish-capture.ts';
+export * from './publish-build.ts';
+export * from './build-diagnostics.ts';
+export * from './preview-release.ts';
+export * from './preview-deployment.ts';
+export * from './site-copy.ts';
+export * from './static-media.ts';
 
-export const locales = ['en', 'fr', 'ar'] as const;
+import { locales } from './locales.ts';
+export { locales } from './locales.ts';
 export const localeSchema = z.enum(locales);
 export type Locale = z.infer<typeof localeSchema>;
 export const contentKinds = [
@@ -154,7 +166,4 @@ export const contactSchema = z
   .strict();
 export type ContactInput = z.infer<typeof contactSchema>;
 
-// The spike implements one real content type; extend this registry in phase 2.
-export const contentRegistry = {
-  education: { input: educationInputSchema, public: publicEducationSchema },
-} as const;
+export * from './publication.ts';

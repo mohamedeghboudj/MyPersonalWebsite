@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { publishCapturePolicy } from './publishing.ts';
+import { previewPolicy } from './preview.ts';
 
 export const environmentNames = ['local', 'preview', 'production'] as const;
 const identifier = z.string().regex(/^[a-z][a-z0-9-]{0,62}$/u);
@@ -21,6 +23,7 @@ const environment = z
   .object({
     content: database,
     inbox: database,
+    mediaBucket: identifier.min(3).optional(),
     admin: z.object({ name: identifier, origin }),
     contact: z.object({ name: identifier, origin }),
     site: z.object({ name: identifier, origin }),
@@ -43,6 +46,7 @@ export const deploymentSetSchema = z
         env.contact.name,
         env.site.name,
       );
+      if (env.mediaBucket) names.push(env.mediaBucket);
       origins.push(env.admin.origin, env.contact.origin, env.site.origin);
       for (const app of [env.admin, env.contact, env.site]) {
         const url = new URL(app.origin);
@@ -96,6 +100,9 @@ export function createWranglerConfigs(
       ...common,
       name: env.admin.name,
       main: 'src/index.ts',
+      ...(name !== 'production'
+        ? { triggers: { crons: [publishCapturePolicy.cleanupCron] } }
+        : {}),
       assets: {
         directory: './dist',
         binding: 'ASSETS',
@@ -108,6 +115,9 @@ export function createWranglerConfigs(
         PUBLIC_ORIGIN: env.site.origin,
       },
       d1_databases: [d1('CONTENT', env.content), d1('INBOX', env.inbox)],
+      ...(env.mediaBucket
+        ? { r2_buckets: [{ binding: 'MEDIA', bucket_name: env.mediaBucket }] }
+        : {}),
     },
     contact: {
       ...common,
@@ -122,7 +132,24 @@ export function createWranglerConfigs(
       d1_databases: [d1('INBOX', env.inbox)],
       triggers: { crons: ['15 3 * * *'] },
     },
-    site: { ...common, name: env.site.name, assets: { directory: './dist' } },
+    site:
+      name === 'preview'
+        ? {
+            ...common,
+            name: env.site.name,
+            main: 'src/index.ts',
+            assets: {
+              directory: '../../artifacts/private-preview/site',
+              binding: 'ASSETS',
+              run_worker_first: true,
+              not_found_handling: '404-page',
+            },
+            vars: {
+              APP_ENV: 'preview',
+              PREVIEW_RELEASE: previewPolicy.bootstrap,
+            },
+          }
+        : { ...common, name: env.site.name, assets: { directory: './dist' } },
   };
 }
 export function assertRemoteResourcesConfigured(

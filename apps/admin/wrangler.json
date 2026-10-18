@@ -5,6 +5,7 @@
   "compatibility_date": "2026-10-01",
   "workers_dev": false,
   "preview_urls": false,
+  "triggers": { "crons": ["17 * * * *"] },
   "d1_databases": [
     {
       "binding": "CONTENT",
@@ -19,6 +20,7 @@
       "migrations_dir": "../../database/migrations/inbox"
     }
   ],
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "media-local" }],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

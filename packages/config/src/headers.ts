@@ -25,8 +25,18 @@ export const publicDocumentHeaders = {
     "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'",
   'X-Robots-Tag': 'noindex, nofollow',
 } as const;
-export function renderPublicHeaders() {
+export const publicAttachmentHeaders = {
+  'Content-Type': 'application/octet-stream',
+  'Content-Disposition': 'attachment; filename="document.pdf"',
+  'Content-Security-Policy': "sandbox; default-src 'none'",
+} as const;
+export function renderPublicHeaders(
+  mode: 'preview' | 'production' = 'preview',
+) {
   return `/*\n${Object.entries(publicDocumentHeaders)
+    .filter(([key]) => mode === 'preview' || key !== 'X-Robots-Tag')
+    .map(([key, value]) => `  ${key}: ${value}`)
+    .join('\n')}\n\n/documents/*\n${Object.entries(publicAttachmentHeaders)
     .map(([key, value]) => `  ${key}: ${value}`)
     .join('\n')}\n`;
 }

@@ -7,7 +7,31 @@ import {
 import { resolveTranslation } from '@platform/database';
 import { sha256 } from '@platform/config';
 
-export const templateVersion = 'reference-2';
+export const templateVersion = 'reference-2.3';
+export interface CvText {
+  value: string;
+  locale: Locale;
+}
+export interface CvEntry {
+  id: number;
+  kind: string;
+  title: CvText;
+  subtitle: CvText;
+  dates: CvText;
+  paragraphs: CvText[];
+  bullets: CvText[];
+  links: string[];
+}
+export interface CvSection {
+  key: string;
+  heading: CvText;
+  entries: CvEntry[];
+}
+export type CvPayload = ReturnType<typeof assembleCv> & {
+  contacts?: string[];
+  sections?: CvSection[];
+};
+export { assemblePublicCv } from './public.ts';
 const escapeMap: Record<string, string> = {
   '\\': '\\textbackslash{}',
   '{': '\\{',
@@ -81,7 +105,7 @@ export function assembleCv(raw: unknown, locale: Locale, target?: unknown) {
     items,
   };
 }
-export async function cvCacheKey(payload: ReturnType<typeof assembleCv>) {
+export async function cvCacheKey(payload: CvPayload) {
   return sha256(JSON.stringify({ templateVersion, payload }));
 }
 // Latin runs inside Arabic are wrapped by trusted code, never by form-entered TeX.
@@ -97,7 +121,7 @@ function arabicText(value: string): string {
     })
     .join('');
 }
-export function renderLatex(payload: ReturnType<typeof assembleCv>): string {
+export function renderLatex(payload: CvPayload): string {
   const language = { en: 'english', fr: 'french', ar: 'arabic' }[
     payload.locale
   ];
@@ -105,8 +129,6 @@ export function renderLatex(payload: ReturnType<typeof assembleCv>): string {
     // Check the whole field before segmenting it, so a control sequence cannot
     // be separated into harmless-looking fragments by bidi handling.
     escapeLatex(value);
-    if (payload.locale === 'ar' && source !== 'ar')
-      return `\\textenglish{${escapeLatex(value)}}`;
     if (source === 'ar')
       return payload.locale === 'ar'
         ? arabicText(value)
@@ -117,6 +139,33 @@ export function renderLatex(payload: ReturnType<typeof assembleCv>): string {
   };
   const rtl = payload.locale === 'ar';
   const french = payload.locale === 'fr';
+  const renderText = (run: CvText) => text(run.value, run.locale);
+  const renderEntry = (entry: CvEntry) => {
+    const title = `${renderText(entry.title)}\\label{cv-entry-${entry.id}}`;
+    const body = [
+      ...entry.paragraphs.map((run) => `${renderText(run)}\\par`),
+      ...(entry.bullets.length
+        ? [
+            `\\begin{tightitemize}\n${entry.bullets.map((run) => `\\item ${renderText(run)}`).join('\n')}\n\\end{tightitemize}`,
+          ]
+        : []),
+      ...entry.links.map((value) => `${text(value, 'en')}\\par`),
+    ].join('\n');
+    if (entry.kind === 'skill') {
+      if (entry.subtitle.value.trim())
+        return `\\skillrow{${renderText(entry.subtitle)}\\label{cv-entry-${entry.id}}}{${renderText(entry.title)}}\n${body}`;
+      return `{\\bfseries ${title}}\\par\n${body}`;
+    }
+    if (entry.kind === 'language')
+      return `\\skillrow{${title}}{${renderText(entry.subtitle)}}\n${body}`;
+    return `\\cventry{${title}}{${renderText(entry.subtitle)}}{${renderText(entry.dates)}}\n${body}\\vspace{3pt}`;
+  };
+  const renderSection = (section: CvSection, index: number) => {
+    const first = section.entries[0];
+    if (!first) return '';
+    const heading = `${renderText(section.heading)}\\label{cv-section-${index}-first-${first.id}}`;
+    return `\\cvsection{${heading}}\n${section.entries.map(renderEntry).join('\n')}`;
+  };
   return `\\documentclass[10pt,a4paper]{article}
 \\usepackage[a4paper,left=${french ? '15' : '17'}mm,right=${french ? '15' : '17'}mm,top=${french ? '9.5' : '11'}mm,bottom=${french ? '9.5' : '11'}mm]{geometry}
 \\usepackage{fontspec}
@@ -137,11 +186,15 @@ export function renderLatex(payload: ReturnType<typeof assembleCv>): string {
 \\definecolor{slate}{HTML}{4D4D4D}
 \\definecolor{hairline}{HTML}{B3B3B3}
 \\color{ink}
-\\newcommand{\\cvsection}[1]{\\par\\needspace{5\\baselineskip}\\vspace{${french ? '5' : '7'}pt}{\\bfseries\\fontsize{${rtl ? '13' : '11.3'}}{15}\\selectfont #1}\\par\\vspace{2pt}{\\color{hairline}\\hrule height 0.8pt}\\vspace{4pt}}
-\\newcommand{\\cventry}[3]{\\par\\needspace{4\\baselineskip}\\noindent\\parbox[t]{0.74\\linewidth}{{${rtl ? '\\bfseries' : '\\cvmedium'}\\fontsize{${rtl ? '11.5' : '9.9'}}{${rtl ? '15' : '12'}}\\selectfont #1}\\par{${rtl ? '' : '\\itshape'}\\color{slate}\\fontsize{${rtl ? '11' : '9.3'}}{${rtl ? '15' : '11.8'}}\\selectfont #2}}\\hfill\\parbox[t]{0.23\\linewidth}{${rtl ? '\\raggedright' : '\\raggedleft\\cvlight'}\\color{slate}\\fontsize{${rtl ? '10.5' : '8.7'}}{13}\\selectfont #3}\\par\\vspace{2pt}}
+% Reserve the section rule/spacing AND the entry's own four-line reservation.
+% A five-line approximation could leave an Arabic heading on the prior page.
+\\newcommand{\\cvsection}[1]{\\par\\Needspace{7\\baselineskip}\\vspace{${french ? '5' : '7'}pt}{\\bfseries\\fontsize{${rtl ? '13' : '11.3'}}{15}\\selectfont #1}\\par\\vspace{2pt}{\\color{hairline}\\hrule height 0.8pt}\\vspace{4pt}}
+\\newcommand{\\cventry}[3]{\\par\\Needspace{4\\baselineskip}\\noindent\\parbox[t]{0.74\\linewidth}{{${rtl ? '\\bfseries' : '\\cvmedium'}\\fontsize{${rtl ? '11.5' : '9.9'}}{${rtl ? '15' : '12'}}\\selectfont #1}\\par{${rtl ? '' : '\\itshape'}\\color{slate}\\fontsize{${rtl ? '11' : '9.3'}}{${rtl ? '15' : '11.8'}}\\selectfont #2}}\\hfill\\parbox[t]{0.23\\linewidth}{${rtl ? '\\raggedright' : '\\raggedleft\\cvlight'}\\color{slate}\\fontsize{${rtl ? '10.5' : '8.7'}}{13}\\selectfont #3}\\par\\vspace{2pt}}
 \\newenvironment{tightitemize}{\\begin{itemize}[leftmargin=11pt,itemsep=${french ? '0' : '0.5'}pt,topsep=2pt,parsep=0pt,partopsep=0pt]}{\\end{itemize}}
 \\newcommand{\\skillrow}[2]{\\noindent{\\bfseries #1${french ? '~' : ''}: }#2\\par\\vspace{2pt}}
 \\pagestyle{empty}
+% Stable ASCII page identifiers for compile-time pagination checks in every language.
+\\renewcommand{\\thepage}{\\number\\value{page}}
 \\setlength{\\parindent}{0pt}
 \\setlength{\\parskip}{0pt}
 \\emergencystretch=1.2em
@@ -150,11 +203,13 @@ export function renderLatex(payload: ReturnType<typeof assembleCv>): string {
 \\begin{center}
 {\\bfseries\\fontsize{20}{23}\\selectfont ${text(payload.name, 'en')}}\\par\\vspace{3pt}
 {\\color{slate}\\fontsize{${rtl ? '12' : '10.3'}}{15}\\selectfont ${text(payload.headline, payload.headlineLocale)}}\\par
+${payload.contacts?.length ? `{\\color{slate}\\fontsize{9}{12}\\selectfont ${payload.contacts.map((value) => text(value, 'en')).join(' \\textbullet{} ')}}\\par` : ''}
 \\end{center}
 \\cvsection{${text(payload.profileHeading, payload.summaryLocale)}}
 ${text(payload.summary, payload.summaryLocale)}\\par
 ${payload.target ? `\\medskip${text('Application to', 'en')} ${text(payload.target.company, /[\u0600-\u06ff]/u.test(payload.target.company) ? 'ar' : 'en')} — ${text(payload.target.role, /[\u0600-\u06ff]/u.test(payload.target.role) ? 'ar' : 'en')}\\par` : ''}
-${payload.items.length ? `\\cvsection{${text(payload.educationHeading, payload.summaryLocale)}}` : ''}
+${payload.sections ? payload.sections.map(renderSection).join('\n') : ''}
+${!payload.sections && payload.items.length ? `\\cvsection{${text(payload.educationHeading, payload.summaryLocale)}}` : ''}
 ${payload.items
   .map(
     (

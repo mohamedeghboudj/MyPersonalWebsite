@@ -1,0 +1,95 @@
+name: Validate private captured build
+run-name: Capture ${{ inputs.capture_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      capture_id:
+        description: Immutable capture UUID (normally supplied by the owner console)
+        type: string
+        required: true
+      capture:
+        description: Capture metadata and hashes only; never paste unpublished content
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: captured-build-${{ inputs.capture_id }}
+  cancel-in-progress: false
+jobs:
+  checks:
+    if: github.actor == github.repository_owner && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/ci.yml
+    with:
+      concurrency_key: capture-${{ inputs.capture_id }}
+  build:
+    needs: checks
+    if: github.actor == github.repository_owner && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: ${{ fromJSON(inputs.capture).environment || 'preview' }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm install --global corepack@0.36.0
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - id: retrieve
+        run: node scripts/fetch-captured-input.ts
+        env:
+          PUBLISH_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PUBLISH_R2_BUCKET: mohamedeghboudj-media-${{ fromJSON(inputs.capture).environment || 'preview' }}
+          PUBLISH_R2_ACCESS_KEY_ID: ${{ secrets.PUBLISH_R2_ACCESS_KEY_ID }}
+          PUBLISH_R2_SECRET_ACCESS_KEY: ${{ secrets.PUBLISH_R2_SECRET_ACCESS_KEY }}
+      # Read credentials are scoped to retrieval. Compiler children receive
+      # only the explicit OS/toolchain allowlist and local build paths.
+      - id: compile
+        run: node scripts/build-captured-input.ts
+      - id: package
+        run: node scripts/prepare-private-preview.ts
+      - id: upload
+        run: node scripts/upload-private-preview.ts
+        if: ${{ fromJSON(inputs.capture).purpose == 'preview' && vars.PREVIEW_UPLOAD_ENABLED == 'true' }}
+        env:
+          PREVIEW_UPLOAD_ENABLED: 'true'
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.PREVIEW_CLOUDFLARE_API_TOKEN }}
+          ACCESS_ISSUER: ${{ vars.PREVIEW_ACCESS_ISSUER }}
+          ACCESS_AUDIENCE: ${{ vars.PREVIEW_ACCESS_AUDIENCE }}
+          ADMIN_ACCESS_AUDIENCE: ${{ vars.ADMIN_ACCESS_AUDIENCE }}
+          OWNER_EMAIL: ${{ vars.PREVIEW_OWNER_EMAIL }}
+      - id: public_upload
+        run: node scripts/upload-public-site.ts
+        if: ${{ fromJSON(inputs.capture).purpose == 'publish' && vars.PUBLISH_UPLOAD_ENABLED == 'true' }}
+        env:
+          PUBLISH_UPLOAD_ENABLED: 'true'
+          DEPLOYMENT_ENVIRONMENT: ${{ fromJSON(inputs.capture).environment || 'preview' }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.PUBLISH_CLOUDFLARE_API_TOKEN }}
+      # Uploading a candidate never activates it. The owner-authenticated admin
+      # coordinator checks this run's success before taking the durable slot.
+      # Version comparison and GitHub concurrency alone cannot order activations.
+      # No private input, logs, TeX, originals, PDFs or pages become Actions artifacts.
+      # Diagnostic storage credentials exist only after compiler children exit.
+      # Reporting failure cannot invalidate an otherwise verified build.
+      - name: Store owner-only build report
+        if: ${{ always() && vars.PUBLISH_DIAGNOSTICS_ENABLED == 'true' && steps.retrieve.outcome != '' && steps.retrieve.outcome != 'skipped' }}
+        continue-on-error: true
+        run: node scripts/upload-build-diagnostics.ts
+        env:
+          PUBLISH_DIAGNOSTICS_ENABLED: 'true'
+          PUBLISH_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PUBLISH_R2_BUCKET: mohamedeghboudj-media-${{ fromJSON(inputs.capture).environment || 'preview' }}
+          DIAGNOSTICS_R2_ACCESS_KEY_ID: ${{ secrets.DIAGNOSTICS_R2_ACCESS_KEY_ID }}
+          DIAGNOSTICS_R2_SECRET_ACCESS_KEY: ${{ secrets.DIAGNOSTICS_R2_SECRET_ACCESS_KEY }}
+          DIAGNOSTIC_RETRIEVAL: ${{ steps.retrieve.outcome }}
+          DIAGNOSTIC_BUILD: ${{ steps.compile.outcome }}
+          DIAGNOSTIC_PACKAGE: ${{ steps.package.outcome }}
+          DIAGNOSTIC_UPLOAD: ${{ fromJSON(inputs.capture).purpose == 'publish' && steps.public_upload.outcome || steps.upload.outcome }}
+      - if: ${{ always() }}
+        run: node scripts/cleanup-captured-build.ts

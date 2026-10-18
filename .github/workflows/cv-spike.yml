@@ -6,8 +6,12 @@ on:
       - '.github/workflows/cv-spike.yml'
       - 'packages/cv-engine/**'
       - 'packages/schema/**'
+      - 'packages/config/**'
+      - 'apps/site/**'
       - 'database/**'
       - 'scripts/**'
+      - 'tests/fixtures/public-cv.ts'
+      - 'tests/public-cv.test.ts'
       - 'pnpm-lock.yaml'
 permissions:
   contents: read
@@ -36,12 +40,24 @@ jobs:
       - run: pnpm spike:local
       - run: pnpm cv:prepare
       - run: pnpm cv:compile
+      - run: node scripts/public-cv-proof.ts prepare
+      - run: node scripts/public-cv-proof.ts build-capture
+      - run: node scripts/public-cv-proof.ts verify
       # Synthetic spike payloads only. Never reuse this public artifact step for
       # an owner's private company/role variants or unpublished content.
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() }}
         with:
           name: synthetic-trilingual-cv-proof
           path: |
             artifacts/cv/*/cv.pdf
             artifacts/cv/measurements.json
+            artifacts/public-cv-proof/cv/*/cv.pdf
+            artifacts/public-cv-proof/cv/*/cv.aux
+            artifacts/public-cv-proof/cv/measurements.json
+            artifacts/public-cv-proof/snapshot.json
+            artifacts/public-cv-proof/cv/*.tex
+            artifacts/public-cv-proof/cv/*.manifest.json
+            artifacts/public-cv-proof/cv/*.compiled.json
           retention-days: 3
+          if-no-files-found: ignore

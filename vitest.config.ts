@@ -17,6 +17,9 @@ export default defineConfig({
   },
   test: {
     include: ['tests/**/*.test.ts'],
+    // Each integration file starts a real workerd/D1 runtime. Bound concurrency
+    // so additional files do not starve setup or the transaction tests.
+    maxWorkers: 2,
     testTimeout: 20000,
     hookTimeout: 30000,
   },
