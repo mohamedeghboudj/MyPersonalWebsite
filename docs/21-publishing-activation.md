@@ -2,6 +2,8 @@
 
 This is the current handoff for publishing, superseding the implementation status in `15`–`20`. Private preview, private reports and public publication controls are implemented. Live activation is still a gate: local simulations cannot prove account credentials, Access policy, real compilation/deployment or delivery latency.
 
+The owner has explicitly authorized authenticator-app codes as an alternative Access Independent MFA method; see [the accepted decision](22-access-mfa-decision.md). The confirmed GitHub login followed by Cloudflare's separate authenticator-app challenge meets that amended requirement. GitHub is the identity provider; the approved ENSIA address is the identity checked in the Access token, not a requirement to use direct email/password login.
+
 ## Implementation
 
 **Publish saved content** records a private immutable capture and an audited publication request. The browser may close immediately after acceptance. A bounded scheduled coordinator processes one queued request per minute, dispatches the fixed owner/main GitHub workflow, verifies its successful run, identifies the exact uploaded static version and activates it through a durable D1 reservation. A request is never considered published just because GitHub accepted or completed a build. Later edits do not change the saved input. A lost request response is retried with the same UUID; an interrupted capture/intent can also be recovered after reloading the console.
@@ -20,7 +22,9 @@ On 2026-10-18 the existing local Wrangler login was verified. The separate priva
 
 `https://mohamedeghboudj-site-preview.mohamed-charaf-eddine-deghboudj.workers.dev`
 
-The initial bootstrap (`898f4ed1-38be-4cb9-8c66-60b78e103056`) contained no unpublished assets and failed closed with an empty audience. After the owner attached Worker-bound Access, version `90110351-ecca-4dd4-a2ba-895eee7f59ae` installed the supplied audience. It still contains no unpublished assets. The admin's existing Access application is unchanged. The owner reports the earlier credentials configured, but two Wrangler secret-name listings for this exact admin Worker returned an empty list. Resolving that target/configuration discrepancy remains necessary; no secret values were retrieved.
+The initial bootstrap (`898f4ed1-38be-4cb9-8c66-60b78e103056`) contained no unpublished assets and failed closed with an empty audience. After the owner attached Worker-bound Access, version `90110351-ecca-4dd4-a2ba-895eee7f59ae` installed the supplied audience. The owner subsequently confirmed its authenticated status response `{"ready":false,"release":null}` and a separate Cloudflare MFA challenge after GitHub login. It still contains no unpublished assets. The admin's existing Access application is unchanged.
+
+The earlier empty-secret discrepancy is resolved: the owner confirmed the exact admin Worker/account and all three Worker/GitHub tokens, and Wrangler independently listed `PUBLISH_GITHUB_TOKEN`, `PREVIEW_CLOUDFLARE_API_TOKEN` and `PUBLISH_CLOUDFLARE_API_TOKEN`. Their values were not read. These setup instructions remain as reproducible documentation; token permissions, R2 retrieval and Actions configuration must still pass the live build.
 
 The original project instructions reserve account/dashboard changes and interactive sign-in to the owner. These steps therefore need the owner; values must go directly into secret prompts/settings, never chat:
 
@@ -55,9 +59,9 @@ The compiler receives none of these credentials. Retrieval, upload and diagnosti
 
 ## Deployment sequence
 
-After current-head checks are green and the implementation has been reviewed, integrate the stacked console/public-site PRs in order so `build-capture.yml` is on `main`. That integration is needed before an owner-only default-branch workflow can be dispatched; it is not evidence that the live tests passed.
+Implementation `b68e48c` passed all 212 tests, nine console and nine public browser flows, and the full trilingual TeX Live proof including both private and public packages. PR #9 was retargeted to `main` to include the complete console history despite PR #8's stale reported head. The merged tree at `8ae0be7` exactly matches the tested implementation; GitHub marked both PRs merged and post-merge Platform checks passed. `build-capture.yml` is now on `main`. This integration is not evidence that the live tests passed.
 
-Apply content migrations `0007`–`0013` only to the isolated preview content D1 and deploy the reviewed admin bundle. The private guard bootstrap already has the supplied separate AUD. Prepare the public **spike** target as an empty static publication bootstrap with annotation `publication-bootstrap-v1`; the existing Namecheap/GitHub domain is not a target. No personal content goes public until the owner presses Publish.
+Content migrations `0007`–`0013` are applied to the isolated preview content D1; its foreign-key check passed. The reviewed admin was deployed with publishing disabled at `eab85982-881d-46e5-829e-82a808668c12`, and the private guard has its separate AUD. The public **spike** bootstrap at `a64ef009-4b80-4231-a94b-e9222280c5a6` has annotation `publication-bootstrap-v1`; provider metadata confirms static assets, no script handlers and no bindings. The existing Namecheap/GitHub domain is not a target. Enabling controls and scheduled jobs does not itself publish a new capture. Choosing Publish makes that capture publicly accessible on the separate spike `workers.dev` address; final-domain cutover remains a later owner action.
 
 Once secrets/configuration are present, the admin's ignored remote configuration needs:
 
@@ -66,6 +70,8 @@ Once secrets/configuration are present, the admin's ignored remote configuration
 - crons `17 * * * *` (retention) and `* * * * *` (publication).
 
 Do not enable scheduled flags while required credentials are absent. No workflow callback, Access bypass, extra login system or account-wide credential is needed.
+
+On 2026-10-20, after confirming the three secret names and the owner's accepted MFA-method change, version `12755d3c-e7cf-4080-832c-05a4ed08478c` enabled these four flags and both schedules on `mohamedeghboudj-admin-spike`. The publication queue contained zero requests before activation. Wrangler confirmed the deployed schedules; a real scheduled invocation and physical expiry remain separate evidence gates. The public target is still the empty spike bootstrap until an owner publication completes. The next owner step is **Website publishing → Prepare saved content → Start private build** from the existing protected console.
 
 ## Live acceptance evidence still required
 
