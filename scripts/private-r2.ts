@@ -1,6 +1,15 @@
 import { AwsClient } from 'aws4fetch';
 import { publishStorageEnvSchema } from '@platform/config';
 
+export class PrivateStorageReadError extends Error {
+  readonly code: 'storage-denied' | 'storage-response' | 'storage-transport';
+
+  constructor(code: PrivateStorageReadError['code']) {
+    super('Private storage read failed');
+    this.code = code;
+  }
+}
+
 export function privateR2Reader(
   raw: unknown,
   fetcher: (request: Request) => Promise<Response> = fetch,
@@ -43,7 +52,13 @@ export function privateR2Reader(
       redirect: 'manual',
       signal: AbortSignal.timeout(30000),
     });
-    const response = await fetcher(signed);
+    let response: Response;
+    try {
+      response = await fetcher(signed);
+    } catch {
+      // Never retain a provider exception: it may contain a signed request.
+      throw new PrivateStorageReadError('storage-transport');
+    }
     if (response.status === 404) {
       await response.body?.cancel();
       return null;
@@ -54,7 +69,11 @@ export function privateR2Reader(
       Number(response.headers.get('Content-Length')) > maxBytes
     ) {
       await response.body?.cancel();
-      throw new Error('Private storage read failed');
+      throw new PrivateStorageReadError(
+        response.status === 401 || response.status === 403
+          ? 'storage-denied'
+          : 'storage-response',
+      );
     }
     return response.body;
   };

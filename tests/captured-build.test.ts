@@ -1,6 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { localDatabase, migrateTestDatabase } from '../scripts/local-database';
 import { capturePublishInput } from '@platform/database';
 import {
@@ -9,6 +12,7 @@ import {
   type PublishInput,
 } from '@platform/schema';
 import { sha256, publishCapturePolicy } from '@platform/config';
+import { publishing } from '@platform/config';
 import { sealPublishInput } from '../scripts/publish-input';
 import {
   fetchCapturedInput,
@@ -67,8 +71,131 @@ async function directory() {
 }
 const reader = async (key: string) =>
   new Response(key.startsWith('publish-inputs/') ? sealed.body : original).body;
+const runNode = promisify(execFile);
+const storage = {
+  PUBLISH_R2_ACCOUNT_ID: 'a'.repeat(32),
+  PUBLISH_R2_BUCKET: 'mohamedeghboudj-media-preview',
+  PUBLISH_R2_ACCESS_KEY_ID: 'synthetic-access-key',
+  PUBLISH_R2_SECRET_ACCESS_KEY: 'synthetic-secret-key',
+};
+
+async function retrievalProcess(response: 'success' | 'denied' | 'transport') {
+  const cwd = await directory();
+  await mkdir(cwd);
+  const created = new Date();
+  const currentInput = structuredClone(input);
+  currentInput.snapshot.generatedAt = created.toISOString();
+  const current = sealPublishInput(currentInput);
+  const currentCapture = {
+    ...capture,
+    inputSha256: current.sha256,
+    snapshotSha256: await sha256(JSON.stringify(currentInput.snapshot)),
+    byteSize: current.body.length,
+    createdAt: created.toISOString(),
+    expiresAt: new Date(
+      created.getTime() + publishCapturePolicy.retentionMs,
+    ).toISOString(),
+  };
+  const eventPath = resolve(cwd, 'event.json');
+  await writeFile(
+    eventPath,
+    JSON.stringify({
+      inputs: {
+        capture_id: capture.id,
+        capture: JSON.stringify(currentCapture),
+      },
+    }),
+  );
+  await writeFile(resolve(cwd, 'input.json'), current.body);
+  await writeFile(resolve(cwd, 'original.bin'), original);
+  // Run the actual CLI in a fresh workspace with synthetic HTTP responses.
+  // No real credentials or network requests enter this process.
+  const source = `
+    const {readFile} = await import('node:fs/promises');
+    globalThis.fetch = async (request) => {
+      if (${JSON.stringify(response)} === 'transport') throw new Error('PRIVATE-REQUEST');
+      if (${JSON.stringify(response)} === 'denied') return new Response('PRIVATE-RESPONSE', {status:403});
+      return new Response(await readFile(request.url.includes('/publish-inputs/') ? 'input.json' : 'original.bin'));
+    };
+    await import(${JSON.stringify(pathToFileURL(resolve('scripts/fetch-captured-input.ts')).href)});
+  `;
+  return {
+    cwd,
+    currentCapture,
+    args: ['--input-type=module', '--eval', source],
+    env: {
+      ...privateBuildEnvironment(process.env),
+      ...storage,
+      GITHUB_EVENT_NAME: 'workflow_dispatch',
+      GITHUB_REF: `refs/heads/${publishing.ref}`,
+      GITHUB_REPOSITORY: publishing.repository,
+      GITHUB_ACTOR: publishing.repository.split('/')[0]!,
+      GITHUB_WORKFLOW_REF: `${publishing.repository}/.github/workflows/${publishing.workflow}@refs/heads/${publishing.ref}`,
+      GITHUB_EVENT_PATH: eventPath,
+      GITHUB_RUN_ID: '39566756483',
+      GITHUB_RUN_ATTEMPT: '1',
+    },
+  };
+}
 
 describe('private captured build retrieval', () => {
+  it('runs the real CLI without an artifacts parent and refuses to reuse its capture directory', async () => {
+    const process = await retrievalProcess('success');
+    const options = { cwd: process.cwd, env: process.env };
+    const destination = resolve(process.cwd, 'artifacts/captured-input');
+    const result = await runNode(
+      globalThis.process.execPath,
+      process.args,
+      options,
+    );
+    expect(result.stdout).toBe(
+      'Private capture and eligible originals verified.\n',
+    );
+    expect(result.stderr).toBe('');
+    expect(await readCapturedInput(destination)).toEqual(
+      process.currentCapture,
+    );
+    await expect(
+      runNode(globalThis.process.execPath, process.args, options),
+    ).rejects.toMatchObject({
+      code: 1,
+      stdout: '',
+      stderr:
+        'Private input retrieval failed [input-validation-or-local-write].\n',
+    });
+    expect(await readCapturedInput(destination)).toEqual(
+      process.currentCapture,
+    );
+  });
+
+  it('prints only fixed failure categories, never workflow, credential or provider data', async () => {
+    for (const [response, overrides, code] of [
+      ['success', { GITHUB_ACTOR: 'PRIVATE-ACTOR' }, 'workflow-context'],
+      [
+        'success',
+        { PUBLISH_R2_ACCOUNT_ID: 'PRIVATE-ACCOUNT' },
+        'storage-configuration',
+      ],
+      ['denied', {}, 'storage-denied'],
+      ['transport', {}, 'storage-transport'],
+    ] as const) {
+      const process = await retrievalProcess(response);
+      await expect(
+        runNode(globalThis.process.execPath, process.args, {
+          cwd: process.cwd,
+          env: { ...process.env, ...overrides },
+        }),
+      ).rejects.toMatchObject({
+        code: 1,
+        stdout: '',
+        stderr: `Private input retrieval failed [${code}].\n`,
+      });
+      await expect(
+        readFile(resolve(process.cwd, 'artifacts/captured-input/capture.json')),
+      ).rejects.toMatchObject({ code: 'ENOENT' });
+    }
+  });
+
   it('binds retrieved inputs and originals to trusted metadata and detects local tampering', async () => {
     const destination = await directory();
     const keys: string[] = [];
@@ -179,12 +306,6 @@ describe('private captured build retrieval', () => {
 });
 
 describe('R2 read-only transport and private diagnostics', () => {
-  const storage = {
-    PUBLISH_R2_ACCOUNT_ID: 'a'.repeat(32),
-    PUBLISH_R2_BUCKET: 'mohamedeghboudj-media-preview',
-    PUBLISH_R2_ACCESS_KEY_ID: 'synthetic-access-key',
-    PUBLISH_R2_SECRET_ACCESS_KEY: 'synthetic-secret-key',
-  };
   it('signs a GET to the fixed account and bucket without URL credentials or redirects', async () => {
     const requests: Request[] = [];
     const get = privateR2Reader(storage, async (request) => {
