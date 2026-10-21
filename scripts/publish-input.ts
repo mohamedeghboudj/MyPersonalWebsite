@@ -1,5 +1,5 @@
 import { mkdir, writeFile, rename } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { publishInputSchema, type PublishInput } from '@platform/schema';
 import { boundedBytes, publishCapturePolicy } from '@platform/config';
@@ -42,6 +42,9 @@ export async function materializePublishInput(
 ) {
   const input = verifyPublishInput(body, expectedSha256);
   const root = resolve(destination);
+  // A fresh Actions checkout has no ignored artifacts directory. Create only
+  // the parents recursively; the capture directory must still be new.
+  await mkdir(dirname(root), { recursive: true, mode: 0o700 });
   await mkdir(root, { mode: 0o700 });
   const sourceDirectory = resolve(root, 'media');
   await mkdir(sourceDirectory);
