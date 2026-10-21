@@ -15,6 +15,7 @@ import {
   sendBuildDispatch,
   findDispatchedBuild,
   readGitHubBuild,
+  buildRunUrl,
   BuildServiceError,
   type GitHubFetch,
 } from './github-builds.ts';
@@ -111,15 +112,31 @@ export async function capturedBuildStatus(
   const row = await readBuildDispatch(binding, id);
   if (!row) throw new PublishCaptureError('Build request not found.', 404);
   const dispatch = dispatchSummary(row);
-  if (!row.runId) return { dispatch, run: null };
-  const config = configuration(rawEnv);
-  return {
+  const state = {
     dispatch,
-    run: await readGitHubBuild(
-      config.PUBLISH_GITHUB_TOKEN,
-      id,
-      row.runId,
-      fetcher,
-    ),
+    url: row.runId ? buildRunUrl(row.runId) : null,
+    statusError: null as string | null,
   };
+  if (!row.runId) return { ...state, run: null };
+  const config = configuration(rawEnv);
+  try {
+    return {
+      ...state,
+      run: await readGitHubBuild(
+        config.PUBLISH_GITHUB_TOKEN,
+        id,
+        row.runId,
+        fetcher,
+      ),
+    };
+  } catch (error) {
+    if (!(error instanceof BuildServiceError)) throw error;
+    // The durable dispatch is still valid when its provider read is unavailable.
+    // A null run cannot authorize activation or claim that a build succeeded.
+    return {
+      ...state,
+      run: null,
+      statusError: `Build request recorded. ${error.message}`,
+    };
+  }
 }

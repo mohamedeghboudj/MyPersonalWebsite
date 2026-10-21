@@ -138,7 +138,7 @@ export function Publishing({
     if (
       !selected ||
       (capture?.purpose !== 'publish' &&
-        (!build?.run || build.run.status === 'completed')) ||
+        (!build?.dispatch.runId || build.run?.status === 'completed')) ||
       (publication && publication.status !== 'queued')
     )
       return;
@@ -392,18 +392,20 @@ export function Publishing({
             {build && (
               <>
                 <p>
-                  {build.run
-                    ? build.run.status === 'completed'
-                      ? build.run.conclusion === 'success'
-                        ? 'Build passed.'
-                        : 'Build did not succeed. Prepare a fresh preview after resolving the problem.'
-                      : 'Building your pages and trilingual CVs…'
-                    : 'Checking whether the build request was accepted.'}
+                  {build.statusError
+                    ? build.statusError
+                    : build.run
+                      ? build.run.status === 'completed'
+                        ? build.run.conclusion === 'success'
+                          ? 'Build passed.'
+                          : 'Build did not succeed. Prepare a fresh preview after resolving the problem.'
+                        : 'Building your pages and trilingual CVs…'
+                      : 'Checking whether the build request was accepted.'}
                 </p>
-                {build.run && (
+                {build.url && (
                   <p>
                     <a
-                      href={build.run.url}
+                      href={build.url}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

@@ -145,7 +145,9 @@ export async function readGitHubBuild(
     const response = await fetcher(request(token, `/actions/runs/${runId}`));
     if (response.status !== 200) {
       await response.body?.cancel();
-      throw new Error('Run unavailable');
+      throw new BuildServiceError(
+        `GitHub build status is unavailable (HTTP ${response.status}). Try again shortly.`,
+      );
     }
     const run = runSchema.parse(await responseJson(response));
     if (run.id !== runId || !belongsToCapture(run, id))
@@ -156,7 +158,8 @@ export async function readGitHubBuild(
       url: buildRunUrl(runId),
       attempt: run.run_attempt ?? null,
     };
-  } catch {
+  } catch (error) {
+    if (error instanceof BuildServiceError) throw error;
     throw new BuildServiceError(
       'GitHub build status is unavailable. Try again shortly.',
     );
