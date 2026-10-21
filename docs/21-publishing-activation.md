@@ -45,17 +45,35 @@ The original project instructions reserve account/dashboard changes and interact
 4. In GitHub → repository Settings → Environments, create **`preview`** before running this workflow. The preview build may inherit the existing repository `CLOUDFLARE_ACCOUNT_ID` secret. Configure the two Workers tokens above, the bucket-scoped read-only `PUBLISH_R2_ACCESS_KEY_ID` / `PUBLISH_R2_SECRET_ACCESS_KEY` from `15`, and the separate bucket-scoped read/write `DIAGNOSTICS_R2_ACCESS_KEY_ID` / `DIAGNOSTICS_R2_SECRET_ACCESS_KEY` from `20`. Both R2 credentials target only **`mohamedeghboudj-media-preview`**. Keep R2 private; no public URL or CORS change.
 5. Set these **preview Environment variables**:
 
-   | Name                          | Value                                          |
-   | ----------------------------- | ---------------------------------------------- |
-   | `PREVIEW_ACCESS_ISSUER`       | `https://mohamedeghboudj.cloudflareaccess.com` |
-   | `PREVIEW_ACCESS_AUDIENCE`     | New private-preview AUD                        |
-   | `ADMIN_ACCESS_AUDIENCE`       | Existing admin AUD                             |
-   | `PREVIEW_OWNER_EMAIL`         | `mohamed-charaf-eddine.deghboudj@ensia.edu.dz` |
-   | `PREVIEW_UPLOAD_ENABLED`      | `true`                                         |
-   | `PUBLISH_UPLOAD_ENABLED`      | `true`                                         |
-   | `PUBLISH_DIAGNOSTICS_ENABLED` | `true`                                         |
+   | Name                          | Value                                                              |
+   | ----------------------------- | ------------------------------------------------------------------ |
+   | `PREVIEW_ACCESS_ISSUER`       | `https://mohamedeghboudj.cloudflareaccess.com`                     |
+   | `PREVIEW_ACCESS_AUDIENCE`     | `5c210b54b54c206a4e5cd7410c1ef85b80dd53acb6cecde981cdd969b7e678c4` |
+   | `ADMIN_ACCESS_AUDIENCE`       | `4e56e10a3b42ca56b2b0db8366393ef9d8e6c828194088788847028a90c8843a` |
+   | `PREVIEW_OWNER_EMAIL`         | `mohamed-charaf-eddine.deghboudj@ensia.edu.dz`                     |
+   | `PREVIEW_UPLOAD_ENABLED`      | `true`                                                             |
+   | `PUBLISH_UPLOAD_ENABLED`      | `true`                                                             |
+   | `PUBLISH_DIAGNOSTICS_ENABLED` | `true`                                                             |
 
 The compiler receives none of these credentials. Retrieval, upload and diagnostic storage credentials are each scoped to their own workflow step. A production GitHub Environment must eventually use its own bucket credentials and configuration; never copy preview bindings into production.
+
+### Where the R2 keys and AUD values come from
+
+In **Cloudflare → R2 object storage → Overview → Account Details → API Tokens → Manage**, create an expiring R2 API token with **Object Read only** permission, restricted to **`mohamedeghboudj-media-preview`**. A descriptive name such as `website-preview-reader` is sufficient. The completion screen provides an **Access Key ID** and **Secret Access Key**; save the latter at creation because Cloudflare does not display it again. These are the S3 credentials described in [Cloudflare's R2 authentication guide](https://developers.cloudflare.com/r2/api/tokens/).
+
+In **MyPersonalWebsite → Settings → Environments → preview → Environment secrets**, map Access Key ID to `PUBLISH_R2_ACCESS_KEY_ID` and Secret Access Key to `PUBLISH_R2_SECRET_ACCESS_KEY`. Enter the generated S3 values, not the separate API token value. A local Wrangler login and Worker secrets do not automatically populate GitHub Actions. Repository Actions secrets can also be inherited, but a secret stored in another GitHub Environment is not available to the `preview` job. Never send either key in chat.
+
+For private reports, create a **separate** expiring credential scoped to the same bucket with **Object Read & Write**, and store its S3 pair as `DIAGNOSTICS_R2_ACCESS_KEY_ID` and `DIAGNOSTICS_R2_SECRET_ACCESS_KEY`. Keep the retrieval pair read-only.
+
+Both audience values in the table are required by the preview upload validation. They are non-secret **Environment variables**, not Environment secrets: the workflow reads them through `vars`. The preview audience identifies its Access application; the admin audience lets validation reject accidental reuse of the same application for both Workers. The owner already supplied these exact values. No new Access applications are needed. To verify an existing value, go to **Zero Trust → Access controls → Applications → Configure → Additional settings → Application Audience (AUD) Tag**, as documented in [Cloudflare's AUD instructions](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/#get-your-aud-tag). Retain the existing Worker-bound Access attachment.
+
+### First live private-build findings
+
+On 2026-10-20, all three owner requests were recorded as separate preview captures, each with one accepted dispatch: `0e014232-a9f4-4391-b6a9-2eb588227b94` / run `39374754681`, `5c5ac0ca-61bf-4068-b28b-532c02fb0f83` / run `39374776104`, and `ed1a4017-34cd-41b9-b18e-1a4cde73edd8` / run `39374867156`. No public publication was requested. Their checks jobs passed, but input retrieval failed. The last run's public log shows both retrieval credential environment values empty; reporting was skipped. This proves dispatch, not successful retrieval or deployment. The earlier setup confirmation therefore did not establish that these specific Actions inputs were available.
+
+The console previously discarded its useful dispatch state when a subsequent GitHub status read failed, leaving Start private build visible. The status API now retains the recorded dispatch and its fixed GitHub link, with an explicit unavailable-status message and no verified run. The console polls read-only status until it recovers. Provider HTTP failures include only their status number; response bodies and exceptions remain private. No second dispatch is sent, and no absent or mismatched run can authorize activation. The original provider response was not recorded, so its specific cause is unproven; an immediately unavailable run is covered by regression tests, not claimed as observed fact.
+
+Local regression checks pass: 214 unit/integration cases, ten console browser flows, type checking, lint and formatting. The new cases cover unavailable/malformed/mismatched provider results, actual workerd reads with large GitHub run IDs, reload recovery and polling without a second POST. The 390px screenshot retains the existing flat layout, labeled selector and quiet status/link; axe passes. JavaScript remains within unchanged caps at 249,334 initial / 9,826 deferred / 259,160 complete bytes. The owner still needs to complete the Actions configuration before a fresh live build can prove retrieval and private deployment.
 
 ## Deployment sequence
 

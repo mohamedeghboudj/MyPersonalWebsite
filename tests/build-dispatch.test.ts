@@ -7,7 +7,10 @@ import {
   requestCapturedBuild,
   capturedBuildStatus,
 } from '../apps/admin/src/build-dispatch';
-import { findDispatchedBuild } from '../apps/admin/src/github-builds';
+import {
+  findDispatchedBuild,
+  readGitHubBuild,
+} from '../apps/admin/src/github-builds';
 import { createAdmin } from '../apps/admin/src/index';
 import { publishing, publishCapturePolicy } from '@platform/config';
 import { capturedBuildSchema } from '@platform/schema';
@@ -382,11 +385,73 @@ describe('authenticated capture dispatch', () => {
       url: `https://github.com/${publishing.repository}/actions/runs/123`,
       attempt: null,
     });
+    expect(result.statusError).toBeNull();
+    const mismatched = await capturedBuildStatus(
+      local.content,
+      env,
+      id,
+      async () => Response.json({ ...run(), id: 124 }),
+    );
+    expect(mismatched.run).toBeNull();
+    expect(mismatched.statusError).toContain('unavailable');
+    // Activation/diagnostics must still reject an unverified run.
     await expect(
-      capturedBuildStatus(local.content, env, id, async () =>
+      readGitHubBuild(env.PUBLISH_GITHUB_TOKEN, id, 123, async () =>
         Response.json({ ...run(), id: 124 }),
       ),
     ).rejects.toThrow('unavailable');
+  });
+
+  it('retains an accepted dispatch through unavailable status reads and recovers without a resend', async () => {
+    const dispatch = await requestCapturedBuild(
+      local.content,
+      env,
+      id,
+      'owner',
+      async () => accepted(),
+      clock,
+    );
+    for (const failure of [
+      async () => new Response('PRIVATE-UPSTREAM-BODY', { status: 404 }),
+      async () => new Response('PRIVATE-UPSTREAM-BODY', { status: 403 }),
+      async () => {
+        throw new Error('PRIVATE-TRANSPORT-DETAIL');
+      },
+      async () => Response.json({ status: 'PRIVATE-INVALID-RESPONSE' }),
+    ]) {
+      const result = await capturedBuildStatus(local.content, env, id, failure);
+      expect(result.dispatch).toEqual(dispatch);
+      expect(result.run).toBeNull();
+      expect(result.statusError).toContain('unavailable');
+      expect(result.url).toBe(
+        `https://github.com/${publishing.repository}/actions/runs/123`,
+      );
+      expect(JSON.stringify(result)).not.toContain('PRIVATE-');
+    }
+    const fetcher = vi.fn(async () => Response.json(run()));
+    expect(
+      await requestCapturedBuild(
+        local.content,
+        env,
+        id,
+        'owner',
+        fetcher,
+        later,
+      ),
+    ).toEqual(dispatch);
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(
+      await capturedBuildStatus(local.content, env, id, fetcher),
+    ).toMatchObject({
+      dispatch,
+      statusError: null,
+      run: { conclusion: 'success' },
+    });
+    expect(
+      (await actions()).filter(
+        (action) => action === 'publish.build.requested',
+      ),
+    ).toHaveLength(1);
   });
 
   it('enforces identity, origin, recent login and server-owned inputs at the API', async () => {

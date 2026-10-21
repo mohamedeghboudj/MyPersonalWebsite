@@ -106,8 +106,10 @@ const server = createServer(async (req, res) => {
         req.method === 'GET'
       ) {
         const value = (await response.json()) as {
+          url: string | null;
           run: { url: string } | null;
         };
+        if (value.url) value.url = origin + '/__simulated-publishing';
         if (value.run) value.run.url = origin + '/__simulated-publishing';
         res.end(JSON.stringify(value));
       } else res.end(Buffer.from(await response.arrayBuffer()));

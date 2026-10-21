@@ -16,6 +16,67 @@ async function prepare(page: Page) {
   ).toBeVisible();
   return page.getByLabel('Saved previews').inputValue();
 }
+test('keeps a recorded build visible while status is unavailable, then recovers by polling without a second dispatch', async ({
+  page,
+}) => {
+  await page.clock.install();
+  let posts = 0,
+    unavailable = true;
+  await page.route('**/api/publishing/captures/*/build', async (route) => {
+    const response = await route.fetch();
+    if (route.request().method() === 'POST') posts++;
+    else if (unavailable) {
+      const state = await response.json();
+      return route.fulfill({
+        response,
+        json: {
+          ...state,
+          run: null,
+          statusError:
+            'Build request recorded. GitHub build status is unavailable (HTTP 404). Try again shortly.',
+        },
+      });
+    }
+    return route.fulfill({ response });
+  });
+  await open(page);
+  const id = await prepare(page);
+  await page.getByRole('button', { name: 'Start private build' }).click();
+  await expect(
+    page.getByText('Build request recorded.', { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Start private build' }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Use this private preview' }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('link', { name: 'View build status' }),
+  ).toHaveAttribute('href', 'http://127.0.0.1:4173/__simulated-publishing');
+  await page.reload();
+  await page.getByText('Website publishing', { exact: true }).click();
+  await page.getByLabel('Saved previews').selectOption(id);
+  await expect(
+    page.getByText('Build request recorded.', { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Start private build' }),
+  ).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({
+    path: 'artifacts/publishing-status-unavailable.png',
+    fullPage: true,
+  });
+  unavailable = false;
+  await page.clock.fastForward(10001);
+  await expect(page.getByText('Build passed.', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Use this private preview' }),
+  ).toBeVisible();
+  expect(posts).toBe(1);
+});
 test('publishes saved content after a lost response and page closure, then recovers its verified status and private report', async ({
   page,
 }) => {
