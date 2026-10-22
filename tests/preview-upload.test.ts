@@ -12,7 +12,7 @@ import {
   uploadPrivatePreview,
   uploadPublicSite,
 } from '../scripts/private-preview-upload';
-import type { privateNodeStage } from '../scripts/private-build';
+import { privateNodeStage } from '../scripts/private-build';
 
 const config = {
   PREVIEW_UPLOAD_ENABLED: 'true',
@@ -213,11 +213,11 @@ describe('private preview candidate upload', () => {
     ])
       await expect(
         uploadPrivatePreview(f.root, invalid, f.send, run),
-      ).rejects.toThrow();
+      ).rejects.toThrow('Candidate upload failed [configuration/validation].');
     await writeFile(resolve(f.root, 'site/extra.json'), 'private');
     await expect(
       uploadPrivatePreview(f.root, config, f.send, run),
-    ).rejects.toThrow('file set changed');
+    ).rejects.toThrow('Candidate upload failed [bundle/validation].');
     const expired = await fixture();
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(expired.bundle.capture.expiresAt));
@@ -230,13 +230,16 @@ describe('private preview candidate upload', () => {
   it('requires an existing verifiable target and detects files changed during preflight', async () => {
     const f = await fixture();
     const run = vi.fn(f.writeReceipt);
-    for (const response of [
-      new Response('not found', { status: 404 }),
-      Response.json({ success: true, result: { deployments: [] } }),
-    ])
+    for (const [response, code] of [
+      [new Response('not found', { status: 404 }), 'http-404'],
+      [
+        Response.json({ success: true, result: { deployments: [] } }),
+        'validation',
+      ],
+    ] as const)
       await expect(
         uploadPrivatePreview(f.root, config, async () => response, run),
-      ).rejects.toThrow('active private preview');
+      ).rejects.toThrow(`Candidate upload failed [active-target/${code}].`);
     await expect(
       uploadPrivatePreview(
         f.root,
@@ -247,7 +250,9 @@ describe('private preview candidate upload', () => {
         },
         run,
       ),
-    ).rejects.toThrow('bytes changed');
+    ).rejects.toThrow(
+      'Candidate upload failed [pre-upload-bundle/validation].',
+    );
     expect(run).not.toHaveBeenCalled();
   });
   it('does not retry uploads or accept missing, duplicate, redirected or mismatched receipts', async () => {
@@ -284,8 +289,66 @@ describe('private preview candidate upload', () => {
             if (mode === 'mismatched') f.release.bundleSha256 = '0'.repeat(64);
           },
         ),
-      ).rejects.toThrow();
+      ).rejects.toThrow(
+        `Candidate upload failed [${mode === 'failed' ? 'wrangler-upload' : mode === 'mismatched' ? 'candidate' : 'receipt'}/validation].`,
+      );
       expect(calls).toBe(1);
+      expect(f.requests.every((request) => request.method === 'GET')).toBe(
+        true,
+      );
+    }
+  });
+
+  it('identifies inspection failures without retaining private provider data or attempting an upload', async () => {
+    for (const mode of [401, 403, 302, 'transport'] as const) {
+      const f = await fixture();
+      const run = vi.fn(f.writeReceipt);
+      const send = vi.fn(async () => {
+        if (mode === 'transport')
+          throw new Error('PRIVATE-TOKEN and PRIVATE-REQUEST');
+        return new Response('PRIVATE-PROVIDER-BODY', {
+          status: mode,
+          headers: { Location: 'https://private.example/sensitive' },
+        });
+      });
+      const failure = await uploadPrivatePreview(
+        f.root,
+        config,
+        send,
+        run,
+      ).catch((error: unknown) => error);
+      expect(failure).toBeInstanceOf(Error);
+      expect(failure).toMatchObject({
+        message: `Candidate upload failed [active-target/${mode === 'transport' ? mode : `http-${mode}`}].`,
+      });
+      expect(failure).not.toHaveProperty('cause');
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(run).not.toHaveBeenCalled();
+    }
+  });
+
+  it('builds both generated configurations with the pinned Wrangler in an offline dry run', async () => {
+    for (const purpose of ['preview', 'publish'] as const) {
+      const f = await fixture(purpose);
+      const upload =
+        purpose === 'preview' ? uploadPrivatePreview : uploadPublicSite;
+      const result = await upload(
+        f.root,
+        {
+          ...process.env,
+          ...config,
+          PUBLISH_UPLOAD_ENABLED: 'true',
+          DEPLOYMENT_ENVIRONMENT: 'preview',
+        },
+        f.send,
+        async (stage, args, env, logs, cwd) => {
+          await privateNodeStage(stage, [...args, '--dry-run'], env, logs, cwd);
+          // Dry runs deliberately have no provider receipt. Simulate it only
+          // after the real CLI accepts and bundles this synthetic configuration.
+          await f.writeReceipt(stage, args, env, logs, cwd);
+        },
+      );
+      expect(result.versionId).toBe(f.candidate);
       expect(f.requests.every((request) => request.method === 'GET')).toBe(
         true,
       );
@@ -343,10 +406,10 @@ it('rejects a public upload whose capture belongs to another environment or purp
       f.send,
       run,
     ),
-  ).rejects.toThrow('environment');
+  ).rejects.toThrow('Candidate upload failed [bundle/validation].');
   await expect(
     uploadPrivatePreview(f.root, config, f.send, run),
-  ).rejects.toThrow('identity');
+  ).rejects.toThrow('Candidate upload failed [bundle/validation].');
   expect(f.requests).toHaveLength(0);
   expect(run).not.toHaveBeenCalled();
 });
