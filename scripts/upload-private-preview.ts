@@ -1,4 +1,7 @@
-import { uploadPrivatePreview } from './private-preview-upload.ts';
+import {
+  CandidateUploadError,
+  uploadPrivatePreview,
+} from './private-preview-upload.ts';
 
 try {
   const candidate = await uploadPrivatePreview(
@@ -9,7 +12,8 @@ try {
   // remain private and are removed by the workflow's always-run cleanup.
   console.log(`Private preview candidate uploaded: ${candidate.versionId}.`);
   console.log('Activation has not been requested.');
-} catch {
+} catch (error) {
+  if (error instanceof CandidateUploadError) console.error(error.message);
   console.error(
     'Private preview upload could not be verified. No activation was requested.',
   );
