@@ -179,8 +179,15 @@ async function uploadBundle(
     if (!info.isFile() || info.isSymbolicLink() || info.size > 64 * 1024)
       throw new Error('Invalid upload receipt');
     const lines = (await readFile(outputPath, 'utf8')).trim().split('\n');
-    if (lines.length !== 1) throw new Error('Ambiguous upload receipt');
-    const uploaded = uploadedSchema(workerName).parse(JSON.parse(lines[0]!));
+    // The pinned CLI writes a session header before its upload result. Require
+    // exactly this pair; never search past unknown, repeated or failed events.
+    // Session arguments/log paths remain private and are not used as authority.
+    if (lines.length !== 2) throw new Error('Ambiguous upload receipt');
+    z.object({
+      type: z.literal('wrangler-session'),
+      version: z.literal(1),
+    }).parse(JSON.parse(lines[0]!));
+    const uploaded = uploadedSchema(workerName).parse(JSON.parse(lines[1]!));
     stage = 'candidate';
     const candidate = previewCandidateSchema.parse(
       await reader.candidate(uploaded.version_id),

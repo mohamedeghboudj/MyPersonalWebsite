@@ -125,15 +125,25 @@ async function fixture(purpose: 'preview' | 'publish' = 'preview') {
   const writeReceipt: typeof privateNodeStage = async (_stage, _args, env) => {
     await writeFile(
       env.WRANGLER_OUTPUT_FILE_PATH!,
-      JSON.stringify({
-        type: 'version-upload',
-        version: 1,
-        worker_name:
-          purpose === 'preview'
-            ? previewPolicy.workerName
-            : publicationTargets.preview.workerName,
-        version_id: candidate,
-      }) + '\n',
+      [
+        {
+          type: 'wrangler-session',
+          version: 1,
+          command_line_args: ['PRIVATE-SYNTHETIC-ARGUMENT'],
+          log_file_path: 'PRIVATE-SYNTHETIC-LOG',
+        },
+        {
+          type: 'version-upload',
+          version: 1,
+          worker_name:
+            purpose === 'preview'
+              ? previewPolicy.workerName
+              : publicationTargets.preview.workerName,
+          version_id: candidate,
+        },
+      ]
+        .map((record) => JSON.stringify(record))
+        .join('\n') + '\n',
     );
   };
   return { root, bundle, release, candidate, requests, send, writeReceipt };
@@ -260,7 +270,15 @@ describe('private preview candidate upload', () => {
       'failed',
       'missing',
       'duplicate',
+      'missing-session',
+      'session-only',
+      'duplicate-upload',
+      'unknown-record',
+      'reversed',
+      'wrong-worker',
+      'invalid-id',
       'version-url',
+      'version-alias-url',
       'mismatched',
     ] as const) {
       const f = await fixture();
@@ -277,15 +295,27 @@ describe('private preview candidate upload', () => {
             await f.writeReceipt(stage, args, env, logs, cwd);
             const file = env.WRANGLER_OUTPUT_FILE_PATH!;
             const raw = await readFile(file, 'utf8');
-            if (mode === 'duplicate') await writeFile(file, raw + raw);
+            let records = raw
+              .trim()
+              .split('\n')
+              .map((line) => JSON.parse(line));
+            if (mode === 'duplicate') records.push(...records);
+            if (mode === 'missing-session') records.shift();
+            if (mode === 'session-only') records.pop();
+            if (mode === 'duplicate-upload') records[0] = records[1];
+            if (mode === 'unknown-record') records[0].type = 'command-failed';
+            if (mode === 'reversed') records = records.reverse();
+            if (mode === 'wrong-worker')
+              records[1].worker_name = 'other-worker';
+            if (mode === 'invalid-id') records[1].version_id = null;
             if (mode === 'version-url')
-              await writeFile(
-                file,
-                JSON.stringify({
-                  ...JSON.parse(raw),
-                  preview_url: 'https://untrusted.example',
-                }),
-              );
+              records[1].preview_url = 'https://untrusted.example';
+            if (mode === 'version-alias-url')
+              records[1].preview_alias_url = 'https://untrusted.example';
+            await writeFile(
+              file,
+              records.map((record) => JSON.stringify(record)).join('\n') + '\n',
+            );
             if (mode === 'mismatched') f.release.bundleSha256 = '0'.repeat(64);
           },
         ),
@@ -343,9 +373,23 @@ describe('private preview candidate upload', () => {
         f.send,
         async (stage, args, env, logs, cwd) => {
           await privateNodeStage(stage, [...args, '--dry-run'], env, logs, cwd);
-          // Dry runs deliberately have no provider receipt. Simulate it only
-          // after the real CLI accepts and bundles this synthetic configuration.
-          await f.writeReceipt(stage, args, env, logs, cwd);
+          // Keep the real CLI's JSONL envelope, including its session record.
+          // A dry run has no provider UUID; substitute only that synthetic ID.
+          const output = env.WRANGLER_OUTPUT_FILE_PATH!;
+          const records = (await readFile(output, 'utf8'))
+            .trim()
+            .split('\n')
+            .map((line) => JSON.parse(line));
+          expect(records.map((record) => record.type)).toEqual([
+            'wrangler-session',
+            'version-upload',
+          ]);
+          expect(records[1].version_id).toBeNull();
+          records[1].version_id = f.candidate;
+          await writeFile(
+            output,
+            records.map((record) => JSON.stringify(record)).join('\n') + '\n',
+          );
         },
       );
       expect(result.versionId).toBe(f.candidate);
