@@ -176,6 +176,12 @@ export const editorModules: readonly EditorModule[] = [
       ...location,
     ],
     ...translated('profileTranslations', 'profileId', [
+      text(
+        'fullName',
+        'Name in this language (blank uses full name)',
+        false,
+        180,
+      ),
       text('headline', 'Headline', true),
       prose('bio', 'Biography'),
     ]),

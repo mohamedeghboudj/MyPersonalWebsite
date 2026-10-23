@@ -22,6 +22,7 @@ export function publicCvFixture(baseline: PublicSnapshot): PublicSnapshot {
     country: null,
     portraitMediaId: null,
     translations: tr({
+      fullName: ['', '', 'مرشح تجريبي'],
       headline: [
         'A synthetic multilingual CV',
         'Un CV multilingue fictif',

@@ -9,6 +9,7 @@ import {
   buildConfig,
   locales,
   absoluteUrl,
+  siteIdentity,
 } from '../lib/content';
 import '@platform/ui/base.css';
 import '../styles/public.css';
@@ -22,6 +23,7 @@ const { snapshot, locale, path, notFound = false } = Astro.props;
 const copy = resolveTranslation(snapshot.siteCopy, locale);
 const text = copy.values;
 const meta = pageMetadata(snapshot, locale, path);
+const { brand } = siteIdentity(snapshot, locale);
 const socialImage =
   !notFound && meta.socialMediaId
     ? (await mediaManifest(snapshot)).images[meta.socialMediaId]?.social
@@ -53,7 +55,7 @@ const localPath = (language: Locale, value = '') =>
     {(notFound || buildConfig.SITE_MODE === 'preview') && (
       <meta name="robots" content="noindex, nofollow" />
     )}
-    <title>{notFound ? `${text.notFoundHeading} — ${snapshot.siteSettings.brandName}` : meta.title}</title>
+    <title>{notFound ? `${text.notFoundHeading} — ${brand.value}` : meta.title}</title>
     <meta
       name="description"
       content={notFound ? text.notFoundBody : meta.description}
@@ -80,10 +82,7 @@ const localPath = (language: Locale, value = '') =>
         <meta property="og:title" content={meta.title} />
         <meta property="og:description" content={meta.description} />
         <meta property="og:url" content={meta.url} />
-        <meta
-          property="og:site_name"
-          content={snapshot.siteSettings.brandName}
-        />
+        <meta property="og:site_name" content={brand.value} />
         {socialImage && socialText && (
           <>
             <meta property="og:image" content={absoluteUrl(socialImage.url)} />
@@ -120,8 +119,13 @@ const localPath = (language: Locale, value = '') =>
       {text.skipLink}
     </a>
     <header class="site-header container">
-      <a class="wordmark" href={localPath(locale)} dir="ltr">
-        {snapshot.siteSettings.brandName}
+      <a
+        class="wordmark"
+        href={localPath(locale)}
+        lang={brand.locale}
+        dir={direction(brand.locale)}
+      >
+        {brand.value}
       </a>
       <nav aria-label={text.mainNavigation} class="primary-nav">
         {snapshot.navigation.map((item) => {
@@ -143,11 +147,13 @@ const localPath = (language: Locale, value = '') =>
         {locales.map((language) => (
           <a
             href={localPath(language, notFound ? '' : path)}
-            lang={language}
+            lang={language === 'ar' && locale !== 'ar' ? locale : language}
             hreflang={language}
             aria-current={language === locale ? 'true' : undefined}
           >
-            {language === 'ar' ? 'العربية' : language.toUpperCase()}
+            {language === 'ar' && locale === 'ar'
+              ? 'العربية'
+              : language.toUpperCase()}
           </a>
         ))}
       </nav>
@@ -157,8 +163,13 @@ const localPath = (language: Locale, value = '') =>
     </main>
     <footer class="site-footer container">
       <div class="footer-identity stack-compact">
-        <a href={localPath(locale)} class="wordmark" dir="ltr">
-          {snapshot.siteSettings.brandName}
+        <a
+          href={localPath(locale)}
+          class="wordmark"
+          lang={brand.locale}
+          dir={direction(brand.locale)}
+        >
+          {brand.value}
         </a>
         {footer?.footerText && (
           <p class="muted" lang={footer.locale} dir={direction(footer.locale)}>

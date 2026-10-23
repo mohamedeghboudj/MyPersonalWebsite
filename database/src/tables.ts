@@ -37,6 +37,7 @@ export const profileTranslations = sqliteTable(
       .notNull()
       .references(() => profile.id, { onDelete: 'cascade' }),
     locale: text('locale', { enum: ['en', 'fr', 'ar'] }).notNull(),
+    fullName: text('localized_name').notNull().default(''),
     headline: text('headline').notNull(),
     bio: text('bio').notNull().default(''),
   },

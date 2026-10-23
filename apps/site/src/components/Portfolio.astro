@@ -2,6 +2,7 @@
 import type { Locale, PublicSnapshot } from '@platform/schema';
 import {
   resolveTranslation,
+  resolveProfileName,
   direction,
   routePath,
   dateLabel,
@@ -21,6 +22,7 @@ const { snapshot, locale, path } = Astro.props;
 const copy = resolveTranslation(snapshot.siteCopy, locale);
 const text = copy.values;
 const profile = resolveTranslation(snapshot.profile.translations, locale);
+const name = resolveProfileName(snapshot.profile, locale);
 const settings = snapshot.siteSettings.translations.length
   ? resolveTranslation(snapshot.siteSettings.translations, locale)
   : null;
@@ -94,7 +96,13 @@ const timeline = [
           ]}
         >
           <div class="hero-content">
-            <p class="identity-name">{snapshot.profile.fullName}</p>
+            <p
+              class="identity-name"
+              lang={name.locale}
+              dir={direction(name.locale)}
+            >
+              {name.value}
+            </p>
             <h1
               id="hero-title"
               lang={profile.locale}
@@ -418,7 +426,9 @@ const timeline = [
         <p class="metadata muted" lang={copy.locale}>
           {text.about}
         </p>
-        <h1 dir="auto">{snapshot.profile.fullName}</h1>
+        <h1 lang={name.locale} dir={direction(name.locale)}>
+          {name.value}
+        </h1>
         <p class="lead" lang={profile.locale} dir={direction(profile.locale)}>
           {profile.headline}
         </p>

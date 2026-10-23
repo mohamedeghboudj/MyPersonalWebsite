@@ -87,7 +87,13 @@ export const profileSchema = z
     fullName: oneLine(180),
     translations: z
       .array(
-        z.object({ locale: localeSchema, headline: oneLine(240) }).strict(),
+        z
+          .object({
+            locale: localeSchema,
+            fullName: z.union([z.literal(''), oneLine(180)]).optional(),
+            headline: oneLine(240),
+          })
+          .strict(),
       )
       .min(1)
       .max(3),

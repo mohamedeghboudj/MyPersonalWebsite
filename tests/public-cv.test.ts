@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { capturePublicSnapshot } from '@platform/database';
 import { assemblePublicCv, cvCacheKey, renderLatex } from '@platform/cv-engine';
 import type { PublicSnapshot } from '@platform/schema';
-import { locales } from '@platform/schema';
+import { locales, publicSnapshotSchema } from '@platform/schema';
 import { mkdir, mkdtemp, readFile, writeFile, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { templateVersion } from '@platform/cv-engine';
@@ -28,6 +28,39 @@ beforeAll(async () => {
   }
 });
 describe('CV from the exact public snapshot', () => {
+  it('uses the localized identity with Arabic shaping and canonical fallback without rewriting historical captures', async () => {
+    const arabic = assemblePublicCv(snapshot, 'ar');
+    expect(arabic.name).toBe('مرشح تجريبي');
+    expect(arabic.nameLocale).toBe('ar');
+    expect(renderLatex(arabic)).toContain('\\selectfont مرشح تجريبي}\\par');
+    expect(renderLatex(arabic)).not.toContain('\\textenglish{مرشح تجريبي}');
+    for (const locale of ['en', 'fr'] as const) {
+      expect(assemblePublicCv(snapshot, locale).name).toBe(
+        snapshot.profile.fullName,
+      );
+      expect(assemblePublicCv(snapshot, locale).nameLocale).toBe('en');
+    }
+    const historical = structuredClone(snapshot);
+    for (const row of historical.profile.translations) delete row.fullName;
+    expect(JSON.stringify(publicSnapshotSchema.parse(historical))).toBe(
+      JSON.stringify(historical),
+    );
+    const fallback = assemblePublicCv(historical, 'ar');
+    expect(fallback.name).toBe(snapshot.profile.fullName);
+    expect(renderLatex(fallback)).toContain(
+      `\\textenglish{${snapshot.profile.fullName}}`,
+    );
+    expect(await cvCacheKey(arabic)).not.toBe(await cvCacheKey(fallback));
+    const localized = snapshot.profile.translations.find(
+      (row) => row.locale === 'ar',
+    )!;
+    historical.profile.translations = [
+      { ...localized, fullName: '\\input{private}' },
+    ];
+    expect(() => renderLatex(assemblePublicCv(historical, 'ar'))).toThrow(
+      'TeX control',
+    );
+  });
   it('resolves all eight content types, respects selection order and omits unselected items', () => {
     const source = structuredClone(snapshot);
     source.education.push({ ...source.education[0]!, id: 999 });

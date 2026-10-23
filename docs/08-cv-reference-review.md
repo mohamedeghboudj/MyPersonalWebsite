@@ -33,6 +33,8 @@ The renderer version is now `reference-2.3`, which invalidates previous cache ke
 
 ## Arabic adaptation
 
+The 2026-10-23 identity correction advances the renderer to `reference-2.4`: a per-language profile name now supplies the website and CV header through the same resolver. See [23](23-localized-identity.md). The earlier validation records below apply to their named template versions; the new Arabic name requires its own compile proof.
+
 Use Polyglossia's Arabic direction and Amiri for joined Arabic glyphs, while preserving Poppins for isolated Latin runs. Allow larger Arabic body leading for diacritics. The entry/date arrangement follows paragraph direction; dates and URLs retain their own Latin direction. Keep whitespace outside isolated English spans so adjacent Arabic words do not touch them.
 
 Headings and the ongoing-date label are translated data in the content database. The initial migration supplies EN/FR/AR values. All values, including future target-company/role prompts, pass through the same escaper and control-sequence rejection before reaching trusted macros.

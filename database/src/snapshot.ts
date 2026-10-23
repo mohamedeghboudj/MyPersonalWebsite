@@ -42,6 +42,7 @@ export async function capturePublishSource(content: D1Database) {
     db
       .select({
         locale: profileTranslations.locale,
+        fullName: profileTranslations.fullName,
         headline: profileTranslations.headline,
       })
       .from(profileTranslations)
@@ -131,6 +132,22 @@ export async function capturePublishSource(content: D1Database) {
 }
 
 // Shared query/resolution layer: pages and CV templates do not invent fallbacks.
+// Names are optional per-language overrides of the canonical identity, not
+// prose: an Arabic-only spelling must not replace the default on English pages.
+export function resolveProfileName(
+  person: {
+    fullName: string;
+    translations: readonly { locale: Locale; fullName?: string | undefined }[];
+  },
+  locale: Locale,
+  fallback = person.fullName,
+): { value: string; locale: Locale } {
+  const value = person.translations
+    .find((row) => row.locale === locale)
+    ?.fullName?.trim();
+  return value ? { value, locale } : { value: fallback, locale: 'en' };
+}
+
 export function resolveTranslation<T extends { locale: Locale }>(
   rows: readonly T[],
   locale: Locale,

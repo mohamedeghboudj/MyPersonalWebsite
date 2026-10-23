@@ -8,7 +8,7 @@ import {
   type Locale,
 } from '@platform/schema';
 import { siteBuildEnvSchema } from '@platform/config';
-import { resolveTranslation } from '@platform/database';
+import { resolveProfileName, resolveTranslation } from '@platform/database';
 
 export const buildConfig = siteBuildEnvSchema.parse(process.env);
 export async function readSnapshot() {
@@ -29,7 +29,17 @@ export async function readSnapshot() {
   return snapshotSchema.parse(input);
 }
 export const direction = (locale: Locale) => (locale === 'ar' ? 'rtl' : 'ltr');
-export { resolveTranslation, locales };
+export { resolveProfileName, resolveTranslation, locales };
+export function siteIdentity(snapshot: PublicSnapshot, locale: Locale) {
+  return {
+    name: resolveProfileName(snapshot.profile, locale),
+    brand: resolveProfileName(
+      snapshot.profile,
+      locale,
+      snapshot.siteSettings.brandName,
+    ),
+  };
+}
 export function routePath(locale: Locale, path = '') {
   return `/${locale === 'en' ? '' : `${locale}/`}${path.replace(/^\/+|\/+$/gu, '')}${path.replace(/^\/+|\/+$/gu, '') ? '/' : ''}`;
 }
@@ -54,6 +64,7 @@ export function pageMetadata(
 ) {
   const copy = resolveTranslation(snapshot.siteCopy, locale).values;
   const person = resolveTranslation(snapshot.profile.translations, locale);
+  const names = siteIdentity(snapshot, locale);
   const seo = snapshot.seo.translations.length
     ? resolveTranslation(snapshot.seo.translations, locale)
     : null;
@@ -73,7 +84,7 @@ export function pageMetadata(
     projectText?.title ??
     categoryText?.name ??
     (path === ''
-      ? (seo?.title ?? snapshot.profile.fullName)
+      ? (seo?.title ?? names.name.value)
       : path === 'about'
         ? copy.about
         : path === 'contact'
@@ -88,7 +99,7 @@ export function pageMetadata(
   const identity = {
     '@type': 'Person',
     '@id': absoluteUrl('/#person'),
-    name: snapshot.profile.fullName,
+    name: names.name.value,
     url: absoluteUrl('/'),
     description: person.headline,
     sameAs: snapshot.socialLinks.map((link) => link.url),
@@ -124,8 +135,7 @@ export function pageMetadata(
           mainEntity: { '@id': identity['@id'] },
         };
   return {
-    title:
-      path === '' ? title : `${title} — ${snapshot.siteSettings.brandName}`,
+    title: path === '' ? title : `${title} — ${names.brand.value}`,
     description,
     url,
     socialMediaId:

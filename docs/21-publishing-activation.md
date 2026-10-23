@@ -115,9 +115,17 @@ Do not enable scheduled flags while required credentials are absent. No workflow
 
 On 2026-10-20, after confirming the three secret names and the owner's accepted MFA-method change, version `12755d3c-e7cf-4080-832c-05a4ed08478c` enabled these four flags and both schedules on `mohamedeghboudj-admin-spike`. The publication queue contained zero requests before activation. Wrangler confirmed the deployed schedules; a real scheduled invocation and physical expiry remain separate evidence gates. The public target is still the empty spike bootstrap until an owner publication completes. The next owner step is **Website publishing → Prepare saved content → Start private build** from the existing protected console.
 
+## Verified private preview on 2026-10-23
+
+After PR #20, capture `e9fdb4b2-a155-493d-8cc9-d5e4f1e787e6` completed [run 39825320922](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/39825320922): retrieval, EN/FR/AR compilation, site build, packaging, candidate upload/readback and private report write/readback all succeeded. Version `2c41166b-9234-4cdb-bab4-dc1217af3666` was activated at 100% on 2026-10-23 at 16:04:39 UTC. The initial response left the ledger uncertain; **Recover preview status** reconciled the exact existing provider deployment without another deployment POST. D1 then recorded `deployed`, with no unresolved preview fence. The original response ambiguity's cause is not established.
+
+The owner opened the preview and confirmed all three localized pages and PDFs work, Arabic RTL works, and a fresh private window requires Access for `/cv/ar.pdf`. Protected report reading/download was also confirmed for the preceding failed attempt. These are functional confirmations only: the owner explicitly deferred layout/styling/UI acceptance while the content remains technical test data. The requested Arabic identity and selector correction is recorded in [23](23-localized-identity.md).
+
+Physical expired-report deletion is now verified too: report for capture `b7c48ad8-d620-46c1-a94a-1f6668572344`, run `39665861215`, expired on 2026-10-22 at 19:55:34 UTC; remote R2 lookup on 2026-10-23 returned “The specified key does not exist.” D1 marked the capture expired, with scheduled cleanup checkpoint revision 75 at 08:17:53 UTC. Together with the earlier input-object deletion this closes the observed input/report retention check. Historical pending statements above describe their state at the time.
+
 ## Live acceptance evidence still required
 
-Use disposable synthetic content in preview D1. Record its save transaction's audit timestamp, then capture/build/activate the private preview. Confirm Independent MFA, owner-only pages and all three actual PDFs, and anonymous denial for direct pages/PDF/report requests. Check the successful private report and one deliberately failing synthetic build's report; a failed build must preserve the active version.
+Use disposable synthetic content in preview D1 for the remaining public publication proof. Private preview activation, functional language/PDF checks, report access and retention are verified above. A fresh save-to-publication test, deliberate failure preserving the now-active last-good version, and competing captured revisions still need live evidence.
 
 Publish a fresh English-only test item using the console. Leave the console page while the job runs, then recover the request from its selector. Confirm English fallback on French and Arabic pages and the updated three PDFs. Record the capture ID and capture time from the owner API and the save time from the transactional audit, without exporting content or credentials. Put only those non-secret fields into ignored `artifacts/publication-observation-request.json`:
 

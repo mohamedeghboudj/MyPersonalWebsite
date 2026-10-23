@@ -7,6 +7,7 @@ import {
   routePath,
   pageMetadata,
   contactHref,
+  siteIdentity,
 } from '../apps/site/src/lib/content';
 
 describe('static presentation boundaries', () => {
@@ -64,6 +65,24 @@ describe('static presentation boundaries', () => {
       expect(meta.jsonLd).not.toContain('private');
       expect(routes(snapshot)).toContain('projects/category/software');
       expect(meta.url).toBe('http://127.0.0.1:4321/ar/projects/field-notes/');
+      snapshot.profile.translations = [
+        {
+          locale: 'ar',
+          fullName: 'اسم تجريبي',
+          headline: 'عنوان',
+          bio: '',
+        },
+      ];
+      const names = siteIdentity(snapshot, 'ar');
+      expect(names.name).toEqual({ value: 'اسم تجريبي', locale: 'ar' });
+      expect(names.brand).toEqual(names.name);
+      expect(siteIdentity(snapshot, 'fr').brand.value).toBe(
+        snapshot.siteSettings.brandName,
+      );
+      expect(pageMetadata(snapshot, 'ar', '').title).toBe('اسم تجريبي');
+      const arabic = pageMetadata(snapshot, 'ar', 'about');
+      expect(arabic.title).toContain('اسم تجريبي');
+      expect(JSON.parse(arabic.jsonLd)['@graph'][0].name).toBe('اسم تجريبي');
     } finally {
       await local.runtime.dispose();
     }

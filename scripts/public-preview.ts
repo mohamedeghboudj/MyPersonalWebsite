@@ -109,14 +109,17 @@ try {
     country: '',
     translations: translated(
       {
+        fullName: '',
         headline: 'Ideas, made tangible.',
         bio: 'Synthetic design preview. Explore example projects across software, research and community. Replace this content through the private console.',
       },
       {
+        fullName: '',
         headline: 'Des idées qui prennent forme.',
         bio: 'Aperçu de conception avec des données fictives. Explorez des exemples de projets en logiciel, recherche et engagement collectif.',
       },
       {
+        fullName: 'محمد شرف الدين دغبوج',
         headline: 'أفكار تتحول إلى واقع.',
         bio: 'معاينة تصميم ببيانات تجريبية. استكشف أمثلة لمشاريع في البرمجيات والبحث والمبادرات المجتمعية.',
       },
