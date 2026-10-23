@@ -35,6 +35,31 @@ for (const locale of ['en', 'fr', 'ar']) {
         locale === 'ar' ? 'rtl' : 'ltr',
       );
       await expect(page.locator('h1')).toHaveCount(1);
+      await expect(page.locator('.locale-nav a[hreflang="ar"]')).toHaveText(
+        locale === 'ar' ? 'العربية' : 'AR',
+      );
+      const brand =
+        locale === 'ar' ? 'محمد شرف الدين دغبوج' : 'mohamedeghboudj';
+      for (const wordmark of await page.locator('.wordmark').all()) {
+        await expect(wordmark).toHaveText(brand);
+        await expect(wordmark).toHaveAttribute(
+          'dir',
+          locale === 'ar' ? 'rtl' : 'ltr',
+        );
+      }
+      await expect(
+        page.locator('meta[property="og:site_name"]'),
+      ).toHaveAttribute('content', brand);
+      if (locale === 'ar') {
+        const identity = JSON.parse(
+          await page.locator('script[type="application/ld+json"]').innerText(),
+        )['@graph'][0];
+        expect(identity.name).toBe(brand);
+        if (path === '/')
+          await expect(page.locator('.identity-name')).toHaveText(brand);
+        if (path === '/about/')
+          await expect(page.locator('h1')).toHaveText(brand);
+      }
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
         'href',
         `http://127.0.0.1:4321${prefix}${path}`,

@@ -77,9 +77,13 @@ export const publicSnapshotSchema = z
         fullName: line.min(1),
         portraitMediaId: id.nullable(),
         ...location,
-        translations: translations({ headline: line.min(1), bio: prose }).min(
-          1,
-        ),
+        translations: translations({
+          // Optional without a default: historical immutable captures retain
+          // their exact parsed shape and digest.
+          fullName: line.max(180).optional(),
+          headline: line.min(1),
+          bio: prose,
+        }).min(1),
         contacts: z.array(
           z
             .object({

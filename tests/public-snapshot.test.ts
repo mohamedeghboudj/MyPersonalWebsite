@@ -161,6 +161,12 @@ describe('public v2 snapshot against real D1', () => {
     expect(snapshot.revision).toBe(
       (await editorOverview(local.content)).revision,
     );
+    // The name saved through the ordinary editor travels through the public
+    // allowlist; it does not require a separate site/CV setting or raw SQL save.
+    expect(
+      snapshot.profile.translations.find((row) => row.locale === 'ar')
+        ?.fullName,
+    ).toBe('نص تجريبي');
   });
 
   it('keeps ordered relations while filtering hidden parents, private contacts and private CV data', async () => {

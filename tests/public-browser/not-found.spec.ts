@@ -93,7 +93,7 @@ test('missing-page recovery works without JavaScript and never repeats the broke
     for (const [language, href] of [
       ['EN', '/'],
       ['FR', '/fr/'],
-      ['العربية', '/ar/'],
+      [locale === 'ar' ? 'العربية' : 'AR', '/ar/'],
     ] as const)
       await expect(
         page

@@ -102,6 +102,7 @@ async function capture(binding: D1Database, includeMediaSources: boolean) {
       fields: ['id', 'fullName', 'portraitMediaId', ...location],
       where: eq(core.profile.id, 1),
       translation: translated(core.profileTranslations, 'profileId', [
+        'fullName',
         'headline',
         'bio',
       ]),

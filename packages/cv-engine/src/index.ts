@@ -4,10 +4,10 @@ import {
   snapshotSchema,
   type Locale,
 } from '@platform/schema';
-import { resolveTranslation } from '@platform/database';
+import { resolveProfileName, resolveTranslation } from '@platform/database';
 import { sha256 } from '@platform/config';
 
-export const templateVersion = 'reference-2.3';
+export const templateVersion = 'reference-2.4';
 export interface CvText {
   value: string;
   locale: Locale;
@@ -64,6 +64,7 @@ export function assembleCv(raw: unknown, locale: Locale, target?: unknown) {
   const resolvedTarget =
     target === undefined ? null : cvTargetSchema.parse(target);
   const profile = resolveTranslation(snapshot.profile.translations, locale);
+  const name = resolveProfileName(snapshot.profile, locale);
   const summary = resolveTranslation(
     snapshot.publicVariant.translations,
     locale,
@@ -93,7 +94,8 @@ export function assembleCv(raw: unknown, locale: Locale, target?: unknown) {
   return {
     variantId: snapshot.publicVariant.id,
     locale,
-    name: snapshot.profile.fullName,
+    name: name.value,
+    nameLocale: name.locale,
     headline: profile.headline,
     headlineLocale: profile.locale,
     summary: summary.summary,
@@ -201,7 +203,7 @@ export function renderLatex(payload: CvPayload): string {
 \\begin{document}
 \\fontsize{${rtl ? '11.2' : french ? '9.3' : '9.4'}}{${rtl ? '15.4' : french ? '12' : '12.5'}}\\selectfont
 \\begin{center}
-{\\bfseries\\fontsize{20}{23}\\selectfont ${text(payload.name, 'en')}}\\par\\vspace{3pt}
+{\\bfseries\\fontsize{20}{23}\\selectfont ${text(payload.name, payload.nameLocale)}}\\par\\vspace{3pt}
 {\\color{slate}\\fontsize{${rtl ? '12' : '10.3'}}{15}\\selectfont ${text(payload.headline, payload.headlineLocale)}}\\par
 ${payload.contacts?.length ? `{\\color{slate}\\fontsize{9}{12}\\selectfont ${payload.contacts.map((value) => text(value, 'en')).join(' \\textbullet{} ')}}\\par` : ''}
 \\end{center}

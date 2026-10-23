@@ -3,7 +3,7 @@ import {
   publicSnapshotSchema,
   type Locale,
 } from '@platform/schema';
-import { resolveTranslation } from '@platform/database';
+import { resolveProfileName, resolveTranslation } from '@platform/database';
 import type { CvEntry, CvPayload, CvSection, CvText } from './index.ts';
 
 // This consumer receives only the allowlisted public snapshot. It cannot read
@@ -15,6 +15,7 @@ export function assemblePublicCv(
   const snapshot = publicSnapshotSchema.parse(raw);
   const locale = localeSchema.parse(requestedLocale);
   const profile = resolveTranslation(snapshot.profile.translations, locale);
+  const name = resolveProfileName(snapshot.profile, locale);
   const variant = resolveTranslation(
     snapshot.publicVariant.translations,
     locale,
@@ -209,7 +210,8 @@ export function assemblePublicCv(
   return {
     variantId: snapshot.publicVariant.id,
     locale,
-    name: snapshot.profile.fullName,
+    name: name.value,
+    nameLocale: name.locale,
     headline: profile.headline,
     headlineLocale: profile.locale,
     summary: variant.summary,

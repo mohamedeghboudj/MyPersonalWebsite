@@ -42,6 +42,7 @@ export async function capturePublishSource(content: D1Database) {
     db
       .select({
         locale: profileTranslations.locale,
+        fullName: profileTranslations.fullName,
         headline: profileTranslations.headline,
       })
       .from(profileTranslations)
@@ -131,6 +132,26 @@ export async function capturePublishSource(content: D1Database) {
 }
 
 // Shared query/resolution layer: pages and CV templates do not invent fallbacks.
+// Names are optional per-language overrides of the canonical identity, not
+// prose: an Arabic-only spelling must not replace the default on English pages.
+export function resolveProfileName(
+  person: {
+    fullName: string;
+    translations: readonly { locale: Locale; fullName?: string | undefined }[];
+  },
+  locale: Locale,
+  fallback = person.fullName,
+): { value: string; locale: Locale } {
+  const names = person.translations
+    .filter((row) => row.fullName?.trim())
+    .map((row) => ({ value: row.fullName!.trim(), locale: row.locale }));
+  // The required canonical identity supplies the English row when no explicit
+  // English spelling exists, so the ordinary shared fallback applies.
+  if (!names.some((row) => row.locale === 'en'))
+    names.push({ value: fallback, locale: 'en' });
+  return resolveTranslation(names, locale);
+}
+
 export function resolveTranslation<T extends { locale: Locale }>(
   rows: readonly T[],
   locale: Locale,
