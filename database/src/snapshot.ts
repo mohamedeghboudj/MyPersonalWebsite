@@ -142,10 +142,14 @@ export function resolveProfileName(
   locale: Locale,
   fallback = person.fullName,
 ): { value: string; locale: Locale } {
-  const value = person.translations
-    .find((row) => row.locale === locale)
-    ?.fullName?.trim();
-  return value ? { value, locale } : { value: fallback, locale: 'en' };
+  const names = person.translations
+    .filter((row) => row.fullName?.trim())
+    .map((row) => ({ value: row.fullName!.trim(), locale: row.locale }));
+  // The required canonical identity supplies the English row when no explicit
+  // English spelling exists, so the ordinary shared fallback applies.
+  if (!names.some((row) => row.locale === 'en'))
+    names.push({ value: fallback, locale: 'en' });
+  return resolveTranslation(names, locale);
 }
 
 export function resolveTranslation<T extends { locale: Locale }>(

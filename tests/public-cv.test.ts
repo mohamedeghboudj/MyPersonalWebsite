@@ -51,6 +51,13 @@ describe('CV from the exact public snapshot', () => {
       `\\textenglish{${snapshot.profile.fullName}}`,
     );
     expect(await cvCacheKey(arabic)).not.toBe(await cvCacheKey(fallback));
+    historical.profile.translations.find(
+      (row) => row.locale === 'en',
+    )!.fullName = 'English name override';
+    expect(assemblePublicCv(historical, 'ar').name).toBe(
+      'English name override',
+    );
+    expect(assemblePublicCv(historical, 'fr').nameLocale).toBe('en');
     const localized = snapshot.profile.translations.find(
       (row) => row.locale === 'ar',
     )!;
