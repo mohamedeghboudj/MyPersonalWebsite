@@ -43,7 +43,7 @@
     "file-type": "22.1.1",
     "hono": "4.13.13",
     "jose": "6.2.12",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",

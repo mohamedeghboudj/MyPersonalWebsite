@@ -123,6 +123,14 @@ The owner opened the preview and confirmed all three localized pages and PDFs wo
 
 Physical expired-report deletion is now verified too: report for capture `b7c48ad8-d620-46c1-a94a-1f6668572344`, run `39665861215`, expired on 2026-10-22 at 19:55:34 UTC; remote R2 lookup on 2026-10-23 returned “The specified key does not exist.” D1 marked the capture expired, with scheduled cleanup checkpoint revision 75 at 08:17:53 UTC. Together with the earlier input-object deletion this closes the observed input/report retention check. Historical pending statements above describe their state at the time.
 
+## Security audit gate on 2026-10-24
+
+After PR #21, the owner saved the Arabic profile name, a visible English-only `publishing-check` project and its public CV selection. The latest transactional save was at 04:26:37 UTC, revision 8. Capture `5ee54a3f-71b9-4c07-afeb-169146bb30c9` was recorded as **preview**, so it did not create a public publication request. Its [run 40062419662](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/40062419662), like the preceding run, passed application checks but failed the dependency audit before retrieving or building the capture. The active deployments were not changed by those runs.
+
+The dependency patch pins Zod 4.6.6 and bounds transitive overrides to patched Undici 7.30.1 / 8.12.2 and fast-uri 3.1.9, preserving both Undici major versions. These address the updated [Zod advisory](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5), [Undici advisories](https://github.com/advisories/GHSA-xjj6-f33q-929c) and [fast-uri advisories](https://github.com/advisories/GHSA-w74x-v6f9-j3xg). The regenerated lockfile reports zero vulnerabilities in the npm audit. The existing CI audit threshold remains unchanged. A fresh capture on the patched main branch is required; rerunning an old immutable request uses its old commit.
+
+For the remaining public proof, use the filled **Publish saved content** button directly. It queues publication automatically; **Prepare saved content → Start private build** creates only a private preview. The Arabic name, project and CV selection are already saved and need not be re-entered. Make a small new edit to the disposable project's summary immediately before publishing so the measured save time describes the fresh request rather than the earlier blocked attempts.
+
 ## Live acceptance evidence still required
 
 Use disposable synthetic content in preview D1 for the remaining public publication proof. Private preview activation, functional language/PDF checks, report access and retention are verified above. A fresh save-to-publication test, deliberate failure preserving the now-active last-good version, and competing captured revisions still need live evidence.
