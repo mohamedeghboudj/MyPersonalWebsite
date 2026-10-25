@@ -131,9 +131,28 @@ The dependency patch pins Zod 4.6.6 and bounds transitive overrides to patched U
 
 For the remaining public proof, use the filled **Publish saved content** button directly. It queues publication automatically; **Prepare saved content → Start private build** creates only a private preview. The Arabic name is already correct. Use an English-only disposable project selected under the lowercase built-in section key `projects` to verify French/Arabic fallback and localized CV headings. Save the test setup immediately before publishing so the measured save time describes the fresh request rather than the earlier blocked attempts.
 
+## Verified automatic public publication on 2026-10-25
+
+The owner requested publication of saved revision 8 through the filled **Publish saved content** button. Capture `430d0427-4fe0-4e54-af1a-081e47a31d28` (sequence 15, purpose `publish`, environment `preview`) was accepted at 07:25:56 UTC. The scheduled coordinator dispatched [run 40172748136](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/40172748136) on patched main `8d7bb89b0983b6e574a7c6935278273821b59c20`. Application/audit/browser checks, input retrieval, EN/FR/AR compilation, site packaging, public candidate upload/readback and private report storage all passed.
+
+Cloudflare activated version `5761a2a3-6dac-44fe-8a23-ff6593fe00bd` at 100%, deployment `679cd055-c500-450f-a1c3-4c22f0a6add0`. The initial activation response left the reservation uncertain; the next scheduled tick reconciled exact positive deployment history and marked the request **published** without another deployment POST or an owner recovery click. There are zero unresolved public deployment reservations. The initial response ambiguity's cause remains unproven; it must not be reported as a rejected deployment or solved by retrying the POST.
+
+Independent provider inspection confirmed the active release matches the capture ID, sequence, revision and snapshot hash. It remains assets-only: no application script handlers, no runtime bindings, and direct static asset serving. The owner ran the read-only observer, which verified the exact release receipt, all three anonymous public pages, Arabic RTL, matching EN/FR/AR PDF hashes, absence of response cookies, and an unchanged receipt after the checks. The ignored evidence is archived under `artifacts/publication-proof/430d0427-4fe0-4e54-af1a-081e47a31d28/`. This proves the public spike path; the real domain still points to its existing site.
+
+| Event                                | UTC                       | Elapsed from capture |
+| ------------------------------------ | ------------------------- | -------------------- |
+| Capture created                      | 07:25:55.645              | —                    |
+| Cloudflare deployment created        | 07:33:06.752619           | 7m11.108s            |
+| Coordinator acknowledged publication | 07:34:03.447              | 8m07.802s            |
+| Anonymous pages/PDFs observed        | 07:34:27.761–07:34:28.802 | 8m32.116s–8m33.157s  |
+
+The observer timings are upper bounds, including any delay before observation. The GitHub checks job took 3m09s and the captured-build job 3m43s; its combined CV/site build step took 3m20s, including compiler setup. This path is slower than the earlier accepted ~4m12s Sprint 0 benchmark. The actual source save was on the preceding day, so its large save-to-observation interval is **not** a fresh-save latency measurement. No new performance acceptance is inferred from this run.
+
+The earlier same-day capture `ce70b2ed-78b5-4228-9b23-af1386c31254` was a private preview, with no public request. Its dispatch became uncertain after about 10.1 seconds, consistent with the configured 10-second deadline; no matching GitHub run was found and the cause is not proven. It was not redispatched. The successful public request above is a distinct owner-authorized capture.
+
 ## Live acceptance evidence still required
 
-Use disposable synthetic content in preview D1 for the remaining public publication proof. Private preview activation, functional language/PDF checks, report access and retention are verified above. A fresh save-to-publication test, deliberate failure preserving the now-active last-good version, and competing captured revisions still need live evidence.
+Use disposable synthetic content in preview D1 for the remaining tests. Private preview activation, functional language/PDF checks, report access, retention, and automatic publication of existing revision 8 are verified above. A fresh save-to-publication test with an English-only item, visual confirmation of the updated Arabic name in the public PDF, deliberate public-build failure preserving the now-active last-good version, and competing captured revisions still need live evidence.
 
 Publish a fresh English-only test item using the console. Leave the console page while the job runs, then recover the request from its selector. Confirm English fallback on French and Arabic pages and the updated three PDFs. Record the capture ID and capture time from the owner API and the save time from the transactional audit, without exporting content or credentials. Put only those non-secret fields into ignored `artifacts/publication-observation-request.json`:
 
@@ -152,7 +171,7 @@ Run the read-only observer from an authorized network-capable terminal while pub
 .\scripts\pnpm.cmd exec node scripts/observe-publication.ts
 ```
 
-It writes ignored `artifacts/publication-live-evidence.json`. Record GitHub queue/build times separately and compare the new automatic path to the previously accepted ~4m12s spike. A delayed start makes the observation an upper bound, never an exact deploy time. Repeat with a failing build and competing captured revisions; verify last-good preservation and that the older version cannot overwrite the newer one. Finally verify a real scheduled retention invocation and removal of expired disposable input/report objects. Keep this gate open until evidence exists.
+It writes ignored `artifacts/publication-live-evidence.json`. Archive each result under its capture ID before the next run replaces it. Record GitHub queue/build times separately and compare the new automatic path to the previously accepted ~4m12s spike. A delayed start makes the observation an upper bound, never an exact deploy time. Repeat with a failing build and competing captured revisions; verify last-good preservation and that the older version cannot overwrite the newer one. Scheduled input/report retention is already proven above. Keep the remaining gates open until evidence exists.
 
 ## Design and local verification
 
