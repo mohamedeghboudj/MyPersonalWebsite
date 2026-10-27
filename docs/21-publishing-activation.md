@@ -1,6 +1,6 @@
 # Publishing completion and live activation
 
-This is the current handoff for publishing, superseding the implementation status in `15`–`20`. Private preview, private reports and public publication controls are implemented. Live activation is still a gate: local simulations cannot prove account credentials, Access policy, real compilation/deployment or delivery latency.
+This is the current handoff for publishing, superseding the implementation status in `15`–`20`. Private preview, private reports and public publication controls are implemented. Private activation and automatic public publication are now verified; the remaining content, failure and ordering checks are listed below. Historical setup sections retain the evidence available at their stated dates. Local simulations alone cannot prove account credentials, Access policy, real compilation/deployment or delivery latency.
 
 The owner has explicitly authorized authenticator-app codes as an alternative Access Independent MFA method; see [the accepted decision](22-access-mfa-decision.md). The confirmed GitHub login followed by Cloudflare's separate authenticator-app challenge meets that amended requirement. GitHub is the identity provider; the approved ENSIA address is the identity checked in the Access token, not a requirement to use direct email/password login.
 
@@ -150,9 +150,32 @@ The observer timings are upper bounds, including any delay before observation. T
 
 The earlier same-day capture `ce70b2ed-78b5-4228-9b23-af1386c31254` was a private preview, with no public request. Its dispatch became uncertain after about 10.1 seconds, consistent with the configured 10-second deadline; no matching GitHub run was found and the cause is not proven. It was not redispatched. The successful public request above is a distinct owner-authorized capture.
 
+## Fresh-save publication verified on 2026-10-27
+
+The owner's English-only `publishing-check` project was saved and selected in the public CV alongside `hello`, with both selection rows using the built-in `projects` section. The project save was at 07:42:08.283 UTC on 2026-10-25; the final CV-selection save was at 07:44:31.954 UTC. Capture `5199b673-1a28-468f-8112-34848d0d3201` then captured revision 10, sequence 16, at 07:45:34.859 UTC. Read-only D1 inspection confirmed the new project's sole translation is English, its visibility and CV inclusion, and the exact transactional save timestamps.
+
+[Run 40174018934](https://github.com/mohamedeghboudj/MyPersonalWebsite/actions/runs/40174018934), on main `4f1d13230faaa3f27af435d9d09f35ca74559571`, passed its full checks, retrieval, trilingual CV/site build, packaging, public candidate upload/readback and private report storage. Cloudflare activated version `7095fa92-3968-4a33-b0bb-4bad9f901c14` at 100%, deployment `a893caa9-ac5f-4f1e-b3e5-ef5bc2e8a261`. On 2026-10-27, independent provider inspection confirmed it remains the active version, matches D1's capture/sequence/revision/snapshot hash, and still serves static assets directly with no application script or bindings.
+
+| Event                                | UTC on 2026-10-25 | Elapsed from final save |
+| ------------------------------------ | ----------------- | ----------------------- |
+| Final CV-selection save              | 07:44:31.954      | —                       |
+| Capture created                      | 07:45:34.859      | 1m02.905s               |
+| Cloudflare deployment created        | 07:54:06.680776   | 9m34.726s               |
+| Coordinator acknowledged publication | 07:55:04.934      | 10m32.980s              |
+
+Capture-to-provider-activation was **8m31.821s**. GitHub's checks job took 3m51s, the build job 3m23s, and the combined CV/site build step 3m01s. The save-to-capture interval includes the owner's console handoff. As in the preceding publication, the initial activation response was uncertain; the next scheduled tick reconciled the single exact deployment and marked the publication published. No repeated deployment POST or manual recovery was needed, and no unresolved public reservation remains. The original response ambiguity's cause is still unproven.
+
+The private input expired normally after 24 hours; this does not expire the published assets. Provider, audit, source-selection and GitHub timing evidence is archived in ignored `artifacts/publication-proof/5199b673-1a28-468f-8112-34848d0d3201/`. The previous revision 8 observation remains in its own archive.
+
+The owner subsequently ran the read-only helper `artifacts/observe-fresh-publication.mjs` on 2026-10-27 at 06:37 UTC. It verified the exact active receipt, anonymous EN/FR/AR pages and PDF hashes, Arabic RTL, no response cookies and a stable receipt across observation. Every localized project page contains the English-only title and summary; the Arabic website shows `محمد شرف الدين دغبوج`, and English/French language selectors show `AR`. The downloaded receipt's snapshot hash also matches the independently inspected provider release and D1 capture.
+
+All three downloaded PDFs were hash-checked again, text-extracted and rendered locally with PDF.js. Each has one page containing the new project's English title and summary. Visual inspection confirmed the Arabic header reads `محمد شرف الدين دغبوج` with connected shaping, right-to-left layout and correctly ordered English fallback text. The section headings are localized (`Projects`, `Projets`, `المشاريع`), and no missing glyphs, clipping or orphan headings were visible on these three technical-test pages. Renderings, extracted text and inspection results remain in the capture's ignored evidence archive. This closes the fresh-save, English-fallback and localized-name functional checks; it is not acceptance of final content, design or accessibility.
+
+The contemporaneous 30-minute observer window was missed. These later checks are explicitly delayed content evidence, without a publishing-latency claim; the original observer's freshness guard remains unchanged. The timing table uses original provider and audit timestamps. No acceptance of the longer publishing delay is inferred.
+
 ## Live acceptance evidence still required
 
-Use disposable synthetic content in preview D1 for the remaining tests. Private preview activation, functional language/PDF checks, report access, retention, and automatic publication of existing revision 8 are verified above. A fresh save-to-publication test with an English-only item, visual confirmation of the updated Arabic name in the public PDF, deliberate public-build failure preserving the now-active last-good version, and competing captured revisions still need live evidence.
+Use disposable synthetic content in preview D1 for the remaining tests. Private preview activation, functional language/PDF checks, report access, retention, automatic publication, fresh-save-to-deployment timing, deployed English fallback and the localized Arabic name are verified above. Deliberate public-build failure preserving the now-active last-good version and competing captured revisions still need live evidence. Do not repeat the accepted setup or fresh-save checks.
 
 Publish a fresh English-only test item using the console. Leave the console page while the job runs, then recover the request from its selector. Confirm English fallback on French and Arabic pages and the updated three PDFs. Record the capture ID and capture time from the owner API and the save time from the transactional audit, without exporting content or credentials. Put only those non-secret fields into ignored `artifacts/publication-observation-request.json`:
 
@@ -172,6 +195,14 @@ Run the read-only observer from an authorized network-capable terminal while pub
 ```
 
 It writes ignored `artifacts/publication-live-evidence.json`. Archive each result under its capture ID before the next run replaces it. Record GitHub queue/build times separately and compare the new automatic path to the previously accepted ~4m12s spike. A delayed start makes the observation an upper bound, never an exact deploy time. Repeat with a failing build and competing captured revisions; verify last-good preservation and that the older version cannot overwrite the newer one. Scheduled input/report retention is already proven above. Keep the remaining gates open until evidence exists.
+
+### Prepared failure and ordering checks
+
+After downloading revision 10's evidence, use only the disposable `publishing-check` project for the remaining live tests. A local preflight verified that the literal English summary `Publishing failure check \publishingcheck` passes the editor and public-snapshot schemas but is rejected by the existing CV text validator, before any TeX compiler starts, in every locale. Restoring the normal summary renders successfully in every locale. This supplies a deterministic failed build without changing secrets, weakening checks, modifying the immutable capture or adding a fault-injection endpoint. The ignored local result is `artifacts/publication-failure-preflight.json`; it is not live proof.
+
+The owner should save that summary and request one public publication, then restore `This is a temporary publishing verification item`, save, and request a second publication. The first immutable capture must still fail even though the editable content has already been repaired. Observe its failed workflow/publication, the unchanged revision 10 deployment and receipt, then the later restored publication succeeding. Keep a private report of the failure and confirm the protected console exposes its status without publishing diagnostics.
+
+For the successful ordering check, queue two successive saved revisions of the same disposable project with distinguishable plain-text summaries before the first finishes. The scheduled coordinator intentionally processes the oldest queued request until it reaches a terminal state; it does not dispatch later requests around an unresolved earlier one. Record both capture identities, workflow/deployment times and public receipts, and confirm the final active revision is the newer one. A late stale-provider/older-candidate attempt is additionally covered by the existing coordinator/D1 regression tests; do not describe a normal FIFO live run as a forced stale-provider race. Do not bypass the queue, clear a reservation, redeploy an old version directly or change capture history to manufacture that race.
 
 ## Design and local verification
 
